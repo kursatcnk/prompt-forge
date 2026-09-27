@@ -5,13 +5,6 @@ using PromptForge.Api.Services;
 
 namespace PromptForge.Api.Controllers
 {
-    /// <summary>
-    /// Favoriler.
-    ///
-    /// GET    /api/favorites              → Favori listesi (en son eklenen üstte)
-    /// POST   /api/favorites/{promptId}   → Geçmişteki bir kaydı favoriye ekle
-    /// DELETE /api/favorites/{promptId}   → Favoriden çıkar (geçmişten silinmez)
-    /// </summary>
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -25,10 +18,12 @@ namespace PromptForge.Api.Controllers
         public async Task<ActionResult<List<PromptRecordDto>>> GetAll() =>
             Ok(await _library.GetFavoritesAsync(User.GetUserId()));
 
+        // Favori, geçmişteki bir kayda işaret ediyor; bu yüzden id geçmiş kaydının id'si.
         [HttpPost("{promptId:guid}")]
         public async Task<IActionResult> Add(Guid promptId) =>
             await _library.AddFavoriteAsync(User.GetUserId(), promptId) ? NoContent() : NotFound(MessageResponse.Fail("Kayıt bulunamadı."));
 
+        // Sadece favoriden çıkarıyor, geçmişteki kayıt duruyor.
         [HttpDelete("{promptId:guid}")]
         public async Task<IActionResult> Remove(Guid promptId)
         {

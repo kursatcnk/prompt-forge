@@ -1,26 +1,19 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PromptForge.Api.Dtos;
 using PromptForge.Api.Services;
 using PromptForge.Api.Services.Ai;
 
 namespace PromptForge.Api.Controllers
 {
-    /// <summary>
-    /// Prompt optimizasyonu ve geçmiş.
-    ///
-    /// POST   /api/prompts/optimize   → Promptu optimize et (AI veya yerel motor), kotaya işle
-    /// POST   /api/prompts            → Sonucu geçmişe kaydet
-    /// GET    /api/prompts            → Geçmişi getir (en yeni 200 kayıt)
-    /// DELETE /api/prompts/{id}       → Tek kaydı sil
-    /// DELETE /api/prompts            → Tüm geçmişi temizle
-    /// </summary>
+    // Optimize, analiz ve geçmiş.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
     public class PromptsController : ControllerBase
     {
-        // Çok uzun metinler hem maliyeti hem kötüye kullanımı artırır; bu sınır normal kullanımın çok üstünde.
+        // Normal kullanımın çok üstünde; hem maliyet hem kötüye kullanım için bir tavan.
         private const int MaxPromptLength = 20_000;
 
         private readonly PromptOptimizerService _optimizer;
@@ -37,6 +30,7 @@ namespace PromptForge.Api.Controllers
         }
 
         [HttpPost("optimize")]
+        [EnableRateLimiting("ai")]
         public async Task<ActionResult<OptimizeResponse>> Optimize([FromBody] OptimizeRequest request, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Original))
@@ -49,7 +43,7 @@ namespace PromptForge.Api.Controllers
             if (me == null) return Unauthorized();
             if (QuotaExceeded(me.Usage) is { } quotaError) return quotaError;
 
-            // Hakkı işe başlamadan ayır: aynı anda gelen istekler kotayı aşamaz.
+            // Hakkı iş başlamadan ayırıyorum; aynı anda gelen iki istek son hakkı ikisi birden kullanamasın.
             var reservation = await _usage.TryReserveAsync(userId, me.Usage.Plan);
             if (reservation == null) return QuotaResponse(await _usage.GetUsageAsync(userId, me.Usage.Plan));
 
@@ -72,11 +66,9 @@ namespace PromptForge.Api.Controllers
             });
         }
 
-        /// <summary>
-        /// Promptu AI ile değerlendirir (öğretici analiz). Aylık kotadan düşer.
-        /// AI yoksa 503 döner; arayüz bu durumda tarayıcıdaki yerel analizi gösterir.
-        /// </summary>
+        // AI yoksa 503 dönüyor, arayüz o zaman tarayıcıdaki yerel analizi gösteriyor.
         [HttpPost("analyze")]
+        [EnableRateLimiting("ai")]
         public async Task<ActionResult<AnalysisResult>> Analyze([FromBody] AnalyzeRequest request, [FromServices] PromptAnalysisService analysis, CancellationToken cancellationToken)
         {
             if (string.IsNullOrWhiteSpace(request.Prompt))
@@ -101,16 +93,13 @@ namespace PromptForge.Api.Controllers
             }
             catch (AiProviderException ex)
             {
-                // AI analizi yapılamadıysa hak iade edilir; kullanıcı yerel analizi görür, kotası düşmez.
+                // AI cevap vermediyse hak iade; kullanıcı yerel analizi görüyor, kotası boşa gitmiyor.
                 await _usage.ReleaseAsync(reservation.Value);
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, MessageResponse.Fail(ex.Message));
             }
         }
 
-        /// <summary>
-        /// Kota doluysa 429 (Too Many Requests) cevabı üretir, değilse null.
-        /// Hem optimize hem analiz aynı aylık hakkı kullanır; süre dolana kadar ikisi de durur.
-        /// </summary>
+        // Optimize ve analiz aynı aylık hakkı paylaşıyor; dolunca ikisi de ay sonuna kadar duruyor.
         private ObjectResult? QuotaExceeded(UsageDto usage) => usage.Used >= usage.Limit ? QuotaResponse(usage) : null;
 
         private ObjectResult QuotaResponse(UsageDto usage) =>

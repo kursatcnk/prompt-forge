@@ -5,10 +5,7 @@ using System.Text.Json.Nodes;
 
 namespace PromptForge.Api.Services.Ai
 {
-    /// <summary>
-    /// "Chat Completions" formatını kullanan sağlayıcıların ortak kodu.
-    /// OpenAI ve DeepSeek aynı istek/cevap yapısını kullandığı için sadece adres ve model farklıdır.
-    /// </summary>
+    // OpenAI ve DeepSeek aynı "chat completions" formatını kullanıyor; sadece adres ve model farklı.
     public abstract class OpenAiCompatibleProvider : IAiProvider
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -39,7 +36,6 @@ namespace PromptForge.Api.Services.Ai
                     new JsonObject { ["role"] = "user", ["content"] = userMessage }
                 }
             };
-            // JSON modu: model geçerli bir JSON nesnesi döndürmek zorunda kalır.
             if (jsonOutput)
                 body["response_format"] = new JsonObject { ["type"] = "json_object" };
 
@@ -75,21 +71,28 @@ namespace PromptForge.Api.Services.Ai
                         _ => $"{DisplayName} isteği tamamlanamadı ({(int)response.StatusCode})."
                     });
 
-                // Cevap: { choices: [ { message: { content } } ], usage: { prompt_tokens, completion_tokens } }
-                using var doc = JsonDocument.Parse(json);
-                var root = doc.RootElement;
-                var text = root.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()?.Trim();
-                if (string.IsNullOrEmpty(text))
-                    throw new AiProviderException($"{DisplayName} boş bir cevap döndürdü.");
+                // { choices: [ { message: { content } } ], usage: { prompt_tokens, completion_tokens } }
+                try
+                {
+                    using var doc = JsonDocument.Parse(json);
+                    var root = doc.RootElement;
+                    var text = root.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()?.Trim();
+                    if (string.IsNullOrEmpty(text))
+                        throw new AiProviderException($"{DisplayName} boş bir cevap döndürdü.");
 
-                var usage = root.TryGetProperty("usage", out var u) ? u : default;
-                int Read(string name) => usage.ValueKind == JsonValueKind.Object && usage.TryGetProperty(name, out var v) ? v.GetInt32() : 0;
-                return new AiCompletion(text, Read("prompt_tokens"), Read("completion_tokens"), Model);
+                    var usage = root.TryGetProperty("usage", out var u) ? u : default;
+                    int Read(string name) => usage.ValueKind == JsonValueKind.Object && usage.TryGetProperty(name, out var v) ? v.GetInt32() : 0;
+                    return new AiCompletion(text, Read("prompt_tokens"), Read("completion_tokens"), Model);
+                }
+                catch (Exception ex) when (ex is JsonException or KeyNotFoundException or InvalidOperationException or IndexOutOfRangeException)
+                {
+                    // Beklenmedik cevap formatı 500 olmasın, yerel motora düşsün.
+                    throw new AiProviderException($"{DisplayName} beklenmedik bir cevap döndürdü.", ex);
+                }
             }
         }
     }
 
-    /// <summary>OpenAI GPT adaptörü. Model appsettings'ten değiştirilebilir.</summary>
     public class OpenAiProvider : OpenAiCompatibleProvider
     {
         public OpenAiProvider(IHttpClientFactory f, IConfiguration c) : base(f, c, "AI:OpenAI") { }
@@ -99,7 +102,6 @@ namespace PromptForge.Api.Services.Ai
         protected override string DefaultModel => "gpt-4o";
     }
 
-    /// <summary>DeepSeek adaptörü (OpenAI ile aynı format).</summary>
     public class DeepSeekProvider : OpenAiCompatibleProvider
     {
         public DeepSeekProvider(IHttpClientFactory f, IConfiguration c) : base(f, c, "AI:DeepSeek") { }

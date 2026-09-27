@@ -1,10 +1,7 @@
-/* ==========================================================================
-   PromptForge — uygulama tasarım sistemi
-   Tek dosya, tek kaynak: renkler, tipografi, boşluklar ve bileşenler burada.
-   Açık/koyu tema aynı değişkenlerle çalışır; bileşenlerde sabit renk yazılmaz.
-   ========================================================================== */
+/* PromptForge uygulama stilleri.
+   Renkler sadece :root değişkenlerinde; bileşenlere sabit renk yazmıyorum ki koyu tema tek yerden çalışsın. */
 
-/* ---------- 1. Tasarım değişkenleri (tokens) ---------- */
+/* --- Değişkenler --- */
 :root {
   --bg: #f7f7f8;
   --surface: #ffffff;
@@ -99,7 +96,7 @@ html[data-kursat-theme="dark"] {
   color-scheme: dark;
 }
 
-/* Sıkı yoğunluk: sadece boşluk değişkenleri küçülür, bileşenler aynı kalır. */
+/* Sıkı yoğunlukta sadece boşluklar küçülüyor. */
 html[data-kursat-density="compact"] {
   --pad: 14px;
   --pad-sm: 10px;
@@ -107,7 +104,7 @@ html[data-kursat-density="compact"] {
   --control-h: 32px;
 }
 
-/* ---------- 2. Temel ---------- */
+/* --- Temel --- */
 *, *::before, *::after { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 body {
@@ -135,7 +132,7 @@ pre { margin: 0; }
 ::selection { background: var(--accent-soft); color: var(--text); }
 .kursat-hidden { display: none !important; }
 
-/* ---------- 3. Uygulama iskeleti ---------- */
+/* --- İskelet: menü, üst bar, içerik --- */
 .kursat-app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
 
 .kursat-sidebar {
@@ -238,7 +235,7 @@ html[data-kursat-theme="dark"] .kursat-theme-icon-moon { display: block; }
 
 .kursat-content { width: 100%; max-width: 1240px; margin: 0 auto; padding: 24px 28px 72px; outline: none; }
 
-/* ---------- 4. Sayfa başlığı ve görünümler ---------- */
+/* --- Sayfa başlıkları --- */
 .kursat-view { display: none; }
 .kursat-view.is-active { display: grid; gap: var(--gap); align-content: start; }
 .kursat-view.is-active.is-entering { animation: pfViewIn 240ms var(--ease) both; }
@@ -253,7 +250,7 @@ html[data-kursat-motion="off"] *, html[data-kursat-motion="off"] *::before, html
 .kursat-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .kursat-section-head { display: grid; gap: 4px; margin: 8px 0 4px; }
 
-/* ---------- 5. Temel bileşenler ---------- */
+/* --- Bileşenler --- */
 .kursat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
 .kursat-card-head {
   display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
@@ -355,7 +352,7 @@ html[data-kursat-motion="off"] *, html[data-kursat-motion="off"] *::before, html
 .kursat-form-message.is-error { color: var(--danger); }
 .kursat-form-message.is-success { color: var(--success); }
 
-/* ---------- 6. Optimize Et: çalışma alanı ---------- */
+/* --- Optimize Et --- */
 .kursat-forge-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--gap); align-items: start; }
 .kursat-forge-main { display: grid; gap: var(--gap); min-width: 0; }
 
@@ -461,7 +458,7 @@ html[data-kursat-motion="off"] *, html[data-kursat-motion="off"] *::before, html
 .kursat-is-pulse, .is-pulse { animation: pfPulse 260ms var(--ease); }
 @keyframes pfPulse { 50% { transform: scale(.97); } }
 
-/* Odak modu: editör tüm ekranı kaplar. */
+/* Odak modu */
 body.kursat-editor-focus { overflow: hidden; }
 .kursat-editor-focus::after { content: ""; position: fixed; inset: 0; z-index: 145; background: rgba(10, 10, 12, .55); backdrop-filter: blur(3px); }
 .kursat-editor-focus .kursat-editor-card {
@@ -478,7 +475,7 @@ body.kursat-editor-focus { overflow: hidden; }
 }
 .kursat-editor-focus .kursat-focus-exit { display: inline-flex; }
 
-/* Kalite paneli (sağ sütun) */
+/* Sağdaki kalite paneli */
 .kursat-preflight { position: sticky; top: 72px; overflow: hidden; }
 .kursat-preflight .kursat-card-head { align-items: center; }
 .kursat-score-orbit {
@@ -565,7 +562,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-diagnostic-card strong { font-size: 14px; font-weight: 600; }
 .kursat-diagnostic-card p { font-size: 12.5px; }
 
-/* ---------- 7. Kütüphane: geçmiş, favoriler, karşılaştırma ---------- */
+/* --- Geçmiş, favoriler, karşılaştırma --- */
 .kursat-search { position: relative; display: block; }
 .kursat-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--faint); width: 15px; height: 15px; }
 .kursat-search .kursat-input { padding-left: 32px; width: 280px; }
@@ -591,7 +588,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-score-card small { font-size: 12px; color: var(--muted); }
 .kursat-score-card strong { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
 
-/* ---------- 8. Ayarlar ---------- */
+/* --- Ayarlar --- */
 .kursat-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: start; }
 .kursat-settings-card { padding: var(--pad); display: grid; gap: 12px; align-content: start; }
 .kursat-settings-card > h3 { font-size: 14px; }
@@ -613,7 +610,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-danger-card { border-color: color-mix(in srgb, var(--danger) 28%, var(--border)); }
 .kursat-danger-card h3 { color: var(--danger); }
 
-/* ---------- 9. Pencereler (modal), komut paleti, bildirimler ---------- */
+/* --- Modal, komut paleti, toast --- */
 .kursat-modal-backdrop {
   position: fixed; inset: 0; z-index: 80; display: none; align-items: flex-start; justify-content: center;
   padding: 12vh 20px 20px; background: rgba(10, 10, 12, .42);
@@ -661,7 +658,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-toast.is-leaving { animation: pfFadeOut 160ms ease both; }
 @keyframes pfToastIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-/* Planlar ve 2FA penceresi */
+/* Plan ve 2FA pencereleri */
 .kursat-plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .kursat-plan-card { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); display: grid; gap: 12px; align-content: start; }
 .kursat-plan-card.is-current { border-color: var(--text); }
@@ -672,7 +669,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-qr img { display: block; width: 176px; height: 176px; image-rendering: pixelated; }
 .kursat-secret { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); font: 13px var(--mono); text-align: center; word-break: break-all; }
 
-/* ---------- 10. Oluştur: atölye, akışlar, yapı taşları ---------- */
+/* --- Atölye, Akışlar, Yapı Taşları --- */
 .kursat-route-card, .kursat-flow-card, .kursat-block-card {
   display: grid; gap: 6px; align-content: start; text-align: left; padding: 16px;
   border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text);
@@ -703,7 +700,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-flow-step strong { display: block; font-size: 12.5px; font-weight: 600; }
 .kursat-flow-step span span { font-size: 13px; color: var(--text-2); }
 
-/* Rehberli oluşturucu: solda sorular, sağda canlı prompt */
+/* Solda sorular, sağda canlı prompt */
 .kursat-builder-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
 .kursat-builder-form { padding: var(--pad); display: grid; gap: 16px; align-content: start; border-right: 1px solid var(--border); }
 .kursat-builder-side { padding: var(--pad); display: grid; gap: 14px; align-content: start; position: sticky; top: 56px; }
@@ -727,7 +724,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-composer-col { display: grid; gap: var(--gap); position: sticky; top: 72px; }
 .kursat-composer-item .kursat-textarea { min-height: 72px; }
 
-/* ---------- 11. Prompt analizi ---------- */
+/* --- Prompt Analizi --- */
 .kursat-health-entry { padding: var(--pad); display: grid; gap: 12px; }
 .kursat-health-input { min-height: 160px; }
 .kursat-analysis { display: grid; gap: var(--gap); }
@@ -763,7 +760,7 @@ body.kursat-editor-focus { overflow: hidden; }
 .kursat-lesson p { font-size: 14px; color: var(--text); }
 .kursat-analysis-title { font-size: 14px; }
 
-/* ---------- 12. Duyarlı tasarım ---------- */
+/* --- Mobil / tablet --- */
 @media (max-width: 1180px) {
   .kursat-forge-layout { grid-template-columns: 1fr; }
   .kursat-preflight { position: static; }
@@ -814,8 +811,8 @@ body.kursat-editor-focus { overflow: hidden; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 
-/* ---------- 13. Premium dokunuşlar ---------- */
-/* Kartlara çok hafif derinlik: düz ama "kâğıt gibi" durmasın. */
+/* --- İnce ayarlar --- */
+/* Kartlarda çok hafif gölge; tamamen düz olunca ekran kâğıt gibi duruyordu. */
 :root { --shadow-card: 0 1px 2px rgba(17, 17, 19, .04), 0 1px 1px rgba(17, 17, 19, .02); }
 html[data-kursat-theme="dark"] { --shadow-card: 0 1px 2px rgba(0, 0, 0, .35); }
 .kursat-card { box-shadow: var(--shadow-card); }
@@ -844,7 +841,7 @@ html[data-kursat-theme="dark"] { --shadow-card: 0 1px 2px rgba(0, 0, 0, .35); }
 .kursat-variable-chip { cursor: pointer; }
 .kursat-variable-chip:hover { border-color: var(--accent); color: var(--accent); }
 
-/* ---------- 14. Şablon galerisi ---------- */
+/* --- Şablonlar --- */
 .kursat-template-toolbar { align-items: center; }
 .kursat-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
 .kursat-chip {
@@ -874,14 +871,14 @@ html[data-kursat-theme="dark"] { --shadow-card: 0 1px 2px rgba(0, 0, 0, .35); }
 .kursat-template-card:hover .kursat-template-open svg, .kursat-guide-tool:hover .kursat-template-open svg { transform: translateX(2px); }
 .kursat-template-empty { grid-column: 1 / -1; }
 
-/* Değişken doldurma penceresi */
+/* {{değişken}} doldurma penceresi */
 .kursat-fill-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
 .kursat-fill-input { min-height: 36px; height: 36px; resize: none; overflow: hidden; }
 #kursat-fill-preview { max-height: 240px; overflow: auto; }
 #kursat-fill-preview mark { background: var(--accent-soft); color: var(--accent); border-radius: 3px; padding: 0 2px; }
 .kursat-modal-copy code { font: 12px var(--mono); background: var(--surface-3); padding: 1px 4px; border-radius: 4px; }
 
-/* ---------- 15. Rehber ---------- */
+/* --- Rehber --- */
 .kursat-guide-top { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--gap); align-items: start; }
 .kursat-guide-progress { padding: 14px var(--pad) 0; }
 .kursat-guide-progress .kursat-progress span { background: var(--accent); }
@@ -948,7 +945,7 @@ html[data-kursat-theme="dark"] { --shadow-card: 0 1px 2px rgba(0, 0, 0, .35); }
 .kursat-faq-item[open] summary::after { transform: rotate(45deg); }
 .kursat-faq-item p { padding: 0 0 14px; font-size: 13px; color: var(--text-2); }
 
-/* ---------- 16. Karşılama turu ---------- */
+/* --- Tanıtım turu --- */
 .kursat-tour { display: grid; gap: 10px; }
 .kursat-tour-dots { display: flex; gap: 5px; }
 .kursat-tour-dots i { width: 18px; height: 4px; border-radius: 999px; background: var(--border); transition: background var(--t) ease, width var(--t) ease; }
@@ -989,5 +986,5 @@ html[data-kursat-theme="dark"] { --shadow-card: 0 1px 2px rgba(0, 0, 0, .35); }
   .kursat-checklist li { grid-template-columns: 22px minmax(0, 1fr); }
   .kursat-checklist li > .kursat-button, .kursat-checklist .kursat-check-state { grid-column: 2; justify-self: start; }
 }
-/* Şablon alan adları küçük harfle yazıldı; ilk harfi büyük göster. */
+/* Şablondaki değişken adları küçük harf, etikette ilk harf büyük dursun. */
 .kursat-fill-fields label::first-letter { text-transform: uppercase; }

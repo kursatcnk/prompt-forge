@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PromptForge.Api.Dtos;
@@ -5,14 +6,7 @@ using PromptForge.Api.Services;
 
 namespace PromptForge.Api.Controllers
 {
-    /// <summary>
-    /// GELİŞTİRİCİ ARACI: Tüm kullanıcıları listeler.
-    ///
-    /// GET /api/users → Tüm kullanıcılar (en yeni kayıt en üstte)
-    ///
-    /// Güvenlik: [Authorize] ile sadece giriş yapmış kişiler erişebilir ve sadece Development ortamında çalışır.
-    /// Canlıda herkesin tüm e-postaları görmesi veri sızıntısı olurdu; orada 404 döner.
-    /// </summary>
+    // Geliştirirken Postman'den kullanıcıları görmek için. Canlıda ve dışarıdan gelen isteklerde 404.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -30,7 +24,10 @@ namespace PromptForge.Api.Controllers
         [HttpGet]
         public async Task<ActionResult<List<UserInfo>>> GetAll()
         {
-            if (!_environment.IsDevelopment()) return NotFound();
+            // Site tünelle paylaşılırken dışarıdan gelenler gerçek IP'leriyle görünüyor (ForwardedHeaders),
+            // loopback kontrolü sayesinde siteye kayıt olan biri herkesin mailini listeleyemiyor.
+            if (!_environment.IsDevelopment() || !IPAddress.IsLoopback(HttpContext.Connection.RemoteIpAddress ?? IPAddress.None))
+                return NotFound();
             return Ok(await _userService.GetAllUsersAsync());
         }
     }

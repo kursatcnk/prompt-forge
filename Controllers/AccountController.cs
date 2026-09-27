@@ -1,24 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using PromptForge.Api.Dtos;
 using PromptForge.Api.Services;
 
 namespace PromptForge.Api.Controllers
 {
-    /// <summary>
-    /// Giriş yapmış kullanıcının kendi hesabı.
-    ///
-    /// GET  /api/account/me                    → Profil, ayarlar, kota, AI durumu, planlar
-    /// PUT  /api/account/settings              → Tercihleri kaydet
-    /// PUT  /api/account/profile               → Görünen adı değiştir
-    /// POST /api/account/change-password       → Şifre değiştir
-    /// POST /api/account/verify-email          → E-posta doğrulama kodu
-    /// POST /api/account/resend-verification   → Yeni doğrulama kodu gönder
-    /// POST /api/account/two-factor/setup      → 2FA kurulumunu başlat (QR kod)
-    /// POST /api/account/two-factor/enable     → İlk kodla 2FA'yı aç
-    /// POST /api/account/two-factor/disable    → Şifreyle 2FA'yı kapat
-    /// POST /api/account/delete                → Şifreyle hesabı sil
-    /// </summary>
+    // Giriş yapmış kullanıcının kendi hesabıyla ilgili her şey.
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
@@ -32,7 +20,7 @@ namespace PromptForge.Api.Controllers
         public async Task<ActionResult<MeResponse>> Me()
         {
             var me = await _account.GetMeAsync(User.GetUserId());
-            // Token geçerli ama kullanıcı silinmişse (örn. başka sekmede hesap silindi) 401 dön; arayüz girişe yönlendirir.
+            // Token hâlâ geçerli ama hesap silinmiş olabilir (başka sekmeden silindiyse). 401 dönünce arayüz girişe atıyor.
             return me == null ? Unauthorized() : Ok(me);
         }
 
@@ -47,7 +35,9 @@ namespace PromptForge.Api.Controllers
             return success ? Ok(user) : BadRequest(MessageResponse.Fail(error!));
         }
 
+        // Şifre soran uçlarda da deneme sınırı var; çalınan bir oturumla şifre tahmin edilemesin.
         [HttpPost("change-password")]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<MessageResponse>> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             var (success, error) = await _account.ChangePasswordAsync(User.GetUserId(), request.CurrentPassword, request.NewPassword);
@@ -55,6 +45,7 @@ namespace PromptForge.Api.Controllers
         }
 
         [HttpPost("verify-email")]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<MessageResponse>> VerifyEmail([FromBody] CodeRequest request)
         {
             var (success, error) = await _account.VerifyEmailAsync(User.GetUserId(), request.Code);
@@ -62,6 +53,7 @@ namespace PromptForge.Api.Controllers
         }
 
         [HttpPost("resend-verification")]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<MessageResponse>> ResendVerification()
         {
             return await _account.ResendVerificationAsync(User.GetUserId())
@@ -77,6 +69,7 @@ namespace PromptForge.Api.Controllers
         }
 
         [HttpPost("two-factor/enable")]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<MessageResponse>> EnableTwoFactor([FromBody] CodeRequest request)
         {
             var (success, error) = await _account.EnableTwoFactorAsync(User.GetUserId(), request.Code);
@@ -84,6 +77,7 @@ namespace PromptForge.Api.Controllers
         }
 
         [HttpPost("two-factor/disable")]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<MessageResponse>> DisableTwoFactor([FromBody] PasswordConfirmRequest request)
         {
             var (success, error) = await _account.DisableTwoFactorAsync(User.GetUserId(), request.Password);
@@ -91,6 +85,7 @@ namespace PromptForge.Api.Controllers
         }
 
         [HttpPost("delete")]
+        [EnableRateLimiting("auth")]
         public async Task<ActionResult<MessageResponse>> DeleteAccount([FromBody] PasswordConfirmRequest request)
         {
             var (success, error) = await _account.DeleteAccountAsync(User.GetUserId(), request.Password);

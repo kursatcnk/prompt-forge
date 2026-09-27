@@ -1,6 +1,6 @@
 namespace PromptForge.Api.Dtos
 {
-    /// <summary>Optimize ekranındaki derleme profili (senaryo, format, dil, politikalar).</summary>
+    // Optimize ekranındaki senaryo/format/dil/politika seçimleri.
     public class PromptProfileDto
     {
         public string? UseCase { get; set; }
@@ -10,10 +10,7 @@ namespace PromptForge.Api.Dtos
         public bool ExposeAssumptions { get; set; } = true;
     }
 
-    /// <summary>
-    /// POST /api/prompts/optimize isteği.
-    /// LocalOptimized: tarayıcıdaki kural motorunun ürettiği sürüm. AI anahtarı yoksa veya AI hata verirse bu kullanılır.
-    /// </summary>
+    // LocalOptimized: tarayıcıdaki kural motorunun sonucu. AI yoksa ya da hata verirse bu dönüyor.
     public class OptimizeRequest
     {
         public string Original { get; set; } = string.Empty;
@@ -25,22 +22,16 @@ namespace PromptForge.Api.Dtos
         public List<string> Variables { get; set; } = new();
     }
 
-    /// <summary>Optimize cevabı: yeni prompt, hangi motorun ürettiği ve güncel kota durumu.</summary>
     public class OptimizeResponse
     {
         public string Optimized { get; set; } = string.Empty;
-        /// <summary>Üreten motor: AI model adı (örn. "claude-opus-5") veya "local".</summary>
-        public string Engine { get; set; } = "local";
+        public string Engine { get; set; } = "local"; // model adı ya da "local"
         public bool UsedAi { get; set; }
-        /// <summary>Kullanıcıya gösterilecek bilgi notu (örn. "AI anahtarı yok, yerel motor kullanıldı").</summary>
         public string? Notice { get; set; }
         public UsageDto Usage { get; set; } = new();
     }
 
-    /// <summary>
-    /// Geçmiş/favori kaydı. Alan adları arayüzdeki kayıt nesnesiyle birebir aynıdır;
-    /// böylece JavaScript tarafı hiçbir dönüştürme yapmadan kullanabilir.
-    /// </summary>
+    // Alan adları JS'teki kayıt nesnesiyle birebir aynı, frontend hiçbir dönüşüm yapmadan kullanıyor.
     public class PromptRecordDto
     {
         public string? Id { get; set; }
@@ -54,23 +45,19 @@ namespace PromptForge.Api.Dtos
         public int BeforeHealth { get; set; }
         public int AfterHealth { get; set; }
         public List<string> Requirements { get; set; } = new();
-        /// <summary>Her sorun [başlık, açıklama] şeklinde iki elemanlı liste.</summary>
-        public List<List<string>> Issues { get; set; } = new();
+        public List<List<string>> Issues { get; set; } = new(); // [başlık, açıklama]
         public List<string> Variables { get; set; } = new();
         public Dictionary<string, bool> Checks { get; set; } = new();
         public PromptProfileDto Profile { get; set; } = new();
         public string? Engine { get; set; }
-        /// <summary>Favorilere eklenme zamanı (sadece favori listesinde dolu gelir).</summary>
-        public DateTime? SavedAt { get; set; }
+        public DateTime? SavedAt { get; set; } // sadece favori listesinde dolu
     }
 
-    /// <summary>Aylık kullanım ve plan kotası.</summary>
     public class UsageDto
     {
         public string Plan { get; set; } = "free";
         public int Used { get; set; }
         public int Limit { get; set; }
-        /// <summary>Kotanın sıfırlanacağı tarih (bir sonraki ayın ilk günü, UTC).</summary>
-        public DateTime ResetsAt { get; set; }
+        public DateTime ResetsAt { get; set; } // bir sonraki ayın ilk günü, UTC
     }
 }

@@ -1,16 +1,13 @@
 namespace PromptForge.Api.Dtos
 {
-    /// <summary>
-    /// Kullanıcının kayıtlı tercihleri. Alan adları arayüzdeki state (PF.state) ile birebir aynıdır.
-    /// </summary>
+    // Alan adları JS tarafındaki PF.state ile aynı, arada dönüştürme yok.
     public class SettingsDto
     {
         public string Model { get; set; } = "gpt";
         public string Goal { get; set; } = "balanced";
         public string Theme { get; set; } = "light";
         public string Density { get; set; } = "comfortable";
-        /// <summary>"on" veya "off"</summary>
-        public string Motion { get; set; } = "on";
+        public string Motion { get; set; } = "on"; // on | off
         public string UseCase { get; set; } = "general";
         public string ResponseFormat { get; set; } = "auto";
         public string ResponseLanguage { get; set; } = "prompt";
@@ -18,7 +15,6 @@ namespace PromptForge.Api.Dtos
         public bool ExposeAssumptions { get; set; } = true;
     }
 
-    /// <summary>Optimize işini hangi AI yapacak? Arayüz bunu "AI bağlı / Yerel mod" olarak gösterir.</summary>
     public class AiStatusDto
     {
         public bool Enabled { get; set; }
@@ -35,7 +31,7 @@ namespace PromptForge.Api.Dtos
         public string[] Features { get; set; } = Array.Empty<string>();
     }
 
-    /// <summary>GET /api/account/me → arayüzün açılışta ihtiyaç duyduğu her şey tek istekte.</summary>
+    // GET /api/account/me: arayüz açılışta ihtiyaç duyduğu her şeyi tek istekte alıyor.
     public class MeResponse
     {
         public UserInfo User { get; set; } = new();
@@ -61,7 +57,7 @@ namespace PromptForge.Api.Dtos
         public string? Code { get; set; }
     }
 
-    /// <summary>Hassas işlemlerde (2FA kapatma, hesap silme) şifre tekrar istenir.</summary>
+    // 2FA kapatma ve hesap silme gibi işlemlerde şifre tekrar soruluyor.
     public class PasswordConfirmRequest
     {
         public string? Password { get; set; }
@@ -69,8 +65,7 @@ namespace PromptForge.Api.Dtos
 
     public class TwoFactorSetupResponse
     {
-        /// <summary>QR okutulamazsa elle girilecek anahtar.</summary>
-        public string Secret { get; set; } = string.Empty;
+        public string Secret { get; set; } = string.Empty; // QR okutulamazsa elle girilecek
         public string QrDataUrl { get; set; } = string.Empty;
         public string OtpAuthUri { get; set; } = string.Empty;
     }

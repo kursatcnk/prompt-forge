@@ -1,5 +1,4 @@
-// PromptForge oturum ve API katmanı.
-// Sayfalar fetch'i doğrudan çağırmaz; token saklama ve API istekleri tek yerden yönetilir.
+// Oturum ve API katmanı. Sayfalar fetch'i kendileri çağırmıyor, token ve istekler hep buradan geçiyor.
 window.PromptForgeSession = (() => {
   "use strict";
 
@@ -8,9 +7,8 @@ window.PromptForgeSession = (() => {
   const APPEARANCE_KEY = "promptforge.appearance";
   const FLASH_KEY = "promptforge.flash";
 
-  // "Beni hatırla" seçiliyse localStorage (tarayıcı kapansa da kalır),
-  // değilse sessionStorage (sekme kapanınca silinir) kullanılır.
-  // Not: Token'ı JS ile okunabilir yerde tutmak basit ama XSS'e açıktır; ileride httpOnly cookie'ye taşınabilir.
+  // Beni hatırla → localStorage, değilse sessionStorage (sekme kapanınca gidiyor).
+  // TODO: token JS'ten okunabilir yerde, XSS'e açık. İleride httpOnly cookie'ye taşımak lazım.
   function stores() {
     const list = [];
     try { list.push(window.localStorage); } catch { /* depolama kapalı olabilir */ }
@@ -40,14 +38,14 @@ window.PromptForgeSession = (() => {
     } catch { /* depolama doluysa oturum sadece bu sayfada yaşar */ }
   }
 
-  // Giriş yapmış kullanıcının bilgisi değişince (ad değişikliği gibi) token'a dokunmadan günceller.
+  // Ad değişince token'a dokunmadan sadece kullanıcı bilgisini güncelle.
   function updateUser(user) {
     for (const store of stores()) {
       try { if (store.getItem(TOKEN_KEY)) store.setItem(USER_KEY, JSON.stringify(user ?? {})); } catch { /* yok say */ }
     }
   }
 
-  // JWT'nin ortadaki parçası (payload) base64 ile kodlanmış JSON'dur; içinden son kullanma zamanını (exp) okuruz.
+  // JWT'nin orta parçası base64 JSON; içinden exp'i okuyorum, süresi dolmuşsa hiç istek atmadan çıkış.
   function isExpired(token) {
     try {
       const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
@@ -69,17 +67,16 @@ window.PromptForgeSession = (() => {
     try { return JSON.parse(read(USER_KEY) || "null"); } catch { return null; }
   }
 
-  // Giriş sayfasının adresi: app.html'den "auth/sign-in.html", auth sayfalarından "sign-in.html".
+  // app.html'den auth/sign-in.html, auth sayfalarının içinden sign-in.html
   function loginUrl() {
     return location.pathname.includes("/auth/") ? "sign-in.html" : "auth/sign-in.html";
   }
 
-  // Giriş yapılmamışsa (veya token süresi dolmuşsa) giriş sayfasına gönderir.
   function requireAuth(url = loginUrl()) {
     if (!getToken()) window.location.replace(url);
   }
 
-  // Sayfalar arası tek seferlik mesaj (örn. "Şifren güncellendi" → giriş ekranında gösterilir).
+  // Sayfa değişirken bırakılan tek seferlik mesaj (örn. şifre sıfırlandıktan sonra giriş ekranında).
   function setFlash(message, type = "success") {
     try { sessionStorage.setItem(FLASH_KEY, JSON.stringify({ message, type })); } catch { /* yok say */ }
   }
@@ -92,7 +89,7 @@ window.PromptForgeSession = (() => {
     } catch { return null; }
   }
 
-  // Tema/yoğunluk/hareket tercihi yerelde de tutulur; sayfa açılırken sunucu cevabını beklemeden doğru tema boyanır.
+  // Görünüm tercihini yerelde de tutuyorum; yoksa sayfa önce açık temada açılıp sonra kararıyor.
   function saveAppearance(appearance) {
     try { localStorage.setItem(APPEARANCE_KEY, JSON.stringify(appearance)); } catch { /* yok say */ }
   }
@@ -101,7 +98,7 @@ window.PromptForgeSession = (() => {
     try { return JSON.parse(localStorage.getItem(APPEARANCE_KEY) || "null"); } catch { return null; }
   }
 
-  // Tüm API istekleri buradan geçer: JSON gönderir, varsa token'ı ekler, cevabı tek formatta döner.
+  // Her istek { ok, status, data } dönüyor, çağıran taraf fetch detaylarıyla uğraşmıyor.
   async function request(path, { method = "GET", body } = {}) {
     const headers = { "Accept": "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
@@ -115,17 +112,17 @@ window.PromptForgeSession = (() => {
       return { ok: false, status: 0, data: { message: "Sunucuya ulaşılamadı. API çalışıyor mu?" } };
     }
 
-    // Token gönderdik ama 401 geldiyse oturum geçersizleşmiş (süresi dolmuş veya hesap silinmiş): girişe dön.
+    // Token vardı ama 401 geldi: süresi dolmuş ya da hesap silinmiş. Girişe dön.
     if (response.status === 401 && token) {
       clearSession();
       setFlash("Oturumun sona erdi. Lütfen tekrar giriş yap.", "error");
       window.location.replace(loginUrl());
     }
-    if (response.status === 429 && !path.startsWith("/api/prompts")) {
-      return { ok: false, status: 429, data: { message: "Çok fazla deneme yaptın. Bir dakika bekleyip tekrar dene." } };
-    }
-
     const data = response.status === 204 ? null : await response.json().catch(() => null);
+    // 429 iki şey olabilir: aylık kota (code: quota_exceeded, içinde usage var) ya da dakikalık istek sınırı (boş gövde).
+    if (response.status === 429 && data?.code !== "quota_exceeded") {
+      return { ok: false, status: 429, data: { message: "Çok hızlı istek gönderdin. Bir dakika bekleyip tekrar dene." } };
+    }
     return { ok: response.ok, status: response.status, data };
   }
 

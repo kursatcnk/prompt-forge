@@ -8,7 +8,7 @@
   <link rel="icon" href="assets/img/kursat-promptforge-mark.svg" type="image/svg+xml">
   <script src="assets/js/kursat-session.js?v=6"></script>
   <script>
-    // Uygulamada seçilen tema tanıtım sayfasında da geçerli olsun (ilk boyamadan önce).
+    // uygulamada seçilen tema burada da geçerli, ilk boyamadan önce
     (()=>{const a=PromptForgeSession.readAppearance()||{};const pref=a.theme||"system";const dark=pref==="dark"||(pref==="system"&&matchMedia?.("(prefers-color-scheme: dark)")?.matches);document.documentElement.dataset.kursatTheme=dark?"dark":"light";})();
   </script>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -35,7 +35,7 @@
 </header>
 
 <main id="top">
-  <!-- 1. Giriş: ne yapıyor, kime yarıyor, hemen dene -->
+  <!-- hero -->
   <section class="lp-hero">
     <div class="lp-wrap lp-hero-grid">
       <div class="lp-hero-copy">
@@ -54,7 +54,7 @@
         </ul>
       </div>
 
-      <!-- Canlı örnek: aynı prompt, üç modele göre üç farklı yapı -->
+      <!-- aynı prompt, üç model, üç farklı yapı -->
       <div class="lp-demo" aria-label="Örnek optimizasyon">
         <div class="lp-demo-head">
           <div class="lp-dots"><i></i><i></i><i></i></div>
@@ -95,7 +95,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
     </div>
   </section>
 
-  <!-- 2. Nasıl çalışır: üç adım -->
+  <!-- nasıl çalışır -->
   <section class="lp-section" id="nasil">
     <div class="lp-wrap">
       <div class="lp-section-head">
@@ -123,7 +123,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
     </div>
   </section>
 
-  <!-- 3. Model farkı: aynı istek, farklı yapı -->
+  <!-- modeller -->
   <section class="lp-section lp-section--tint" id="modeller">
     <div class="lp-wrap lp-split">
       <div class="lp-section-head lp-section-head--left">
@@ -141,7 +141,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
     </div>
   </section>
 
-  <!-- 4. Özellikler -->
+  <!-- özellikler -->
   <section class="lp-section" id="ozellikler">
     <div class="lp-wrap">
       <div class="lp-section-head">
@@ -159,7 +159,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
     </div>
   </section>
 
-  <!-- 5. Öğretici bölüm: iyi promptun 6 ölçütü -->
+  <!-- 6 ölçüt (Prompt Analizi'ndekilerle aynı) -->
   <section class="lp-section lp-section--tint" id="ogren">
     <div class="lp-wrap">
       <div class="lp-section-head">
@@ -178,7 +178,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
     </div>
   </section>
 
-  <!-- 6. Plan -->
+  <!-- plan -->
   <section class="lp-section" id="plan">
     <div class="lp-wrap">
       <div class="lp-section-head">
@@ -201,7 +201,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
     </div>
   </section>
 
-  <!-- 7. Sık sorulan sorular -->
+  <!-- sss -->
   <section class="lp-section lp-section--tint" id="sss">
     <div class="lp-wrap lp-narrow">
       <div class="lp-section-head">
@@ -219,7 +219,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
     </div>
   </section>
 
-  <!-- 8. Kapanış çağrısı -->
+  <!-- kapanış -->
   <section class="lp-final">
     <div class="lp-wrap lp-final-inner">
       <h2>Bir sonraki promptun daha iyi olsun.</h2>
@@ -243,18 +243,16 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
 <script>
   (() => {
     "use strict";
-    // Giriş yapmış ziyaretçiye "Giriş yap / Kayıt ol" yerine "Çalışma alanını aç" göster.
+    // girişliyse kayıt butonları yerine çalışma alanı linki
     const member = !!PromptForgeSession.getToken();
     document.querySelectorAll("[data-lp-guest]").forEach(el => el.classList.toggle("lp-hidden", member));
     document.querySelectorAll("[data-lp-member]").forEach(el => el.classList.toggle("lp-hidden", !member));
 
-    // Üst menü: sayfa kaydırılınca alt çizgi belirir.
     const header = document.getElementById("lp-header");
     const onScroll = () => header.classList.toggle("is-scrolled", window.scrollY > 8);
     window.addEventListener("scroll", onScroll, { passive: true });
     onScroll();
 
-    // Örnek kutusu: aynı prompt, modele göre farklı yapı.
     const samples = {
       gpt: ["Markdown başlıkları", `## Rol
 Deneyimli bir B2B pazarlama metin yazarısın.
@@ -309,7 +307,7 @@ Görev: Bu bilgilere göre ürünü tanıtan e-postayı yaz.`]
       code.textContent = samples[model][1];
     }
     tabs.forEach(tab => tab.addEventListener("click", () => { clearInterval(timer); show(tab.dataset.lpModel); }));
-    // Ziyaretçi dokunmazsa örnek kendiliğinden modeller arasında döner.
+    // dokunulmazsa sekmeler kendi kendine dönüyor; tıklanınca duruyor
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
       const order = Object.keys(samples);
       timer = setInterval(() => show(order[(order.indexOf(current) + 1) % order.length]), 5200);

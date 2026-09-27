@@ -7,10 +7,16 @@ ASP.NET Core 8 Web API + SQL Server + `wwwroot` içinde HTML/CSS/JS arayüz. Sit
 ## Çalıştırma
 
 1. Visual Studio'da `PromptForge.sln` dosyasını aç.
-2. Veritabanını oluştur (ilk seferde): **Tools → NuGet Package Manager → Package Manager Console** → `Update-Database`
-3. Üstteki profil menüsünden **http** seçili olsun ve **Ctrl+F5** ile başlat. Tarayıcıda giriş ekranı açılır.
+2. Üstteki profil menüsünden **http** seçili olsun ve **Ctrl+F5** ile başlat (ya da terminalde `dotnet run`).
 
-Veritabanı bağlantısı `appsettings.json` → `ConnectionStrings:DefaultConnection` içinde (`localhost\SQLEXPRESS`).
+Tablolar açılışta migration'larla kendiliğinden oluşuyor. Bağlantı adresi `appsettings.json` → `ConnectionStrings:DefaultConnection` (`localhost\SQLEXPRESS`).
+`/health` adresi uygulamanın ve veritabanı bağlantısının ayakta olup olmadığını döner.
+
+## Arkadaşlarla paylaşma (Cloudflare tüneli)
+
+`Paylas.bat` dosyasına çift tıkla: API'yi ve Cloudflare tünelini ayrı pencerelerde açar. Tünel penceresinde çıkan
+`https://....trycloudflare.com` linki paylaşılır. Bilgisayar ve pencereler açık kaldıkça çalışır, her açılışta link değişir.
+Tünel arkasında gerçek kullanıcı IP'si `X-Forwarded-For` başlığından okunur, deneme sınırları herkese ayrı işler.
 
 ## AI anahtarı ekleme
 
@@ -53,13 +59,21 @@ Gerçek e-posta için user secrets'a SMTP ayarlarını ekle (Gmail için bir "uy
 
 | Klasör | İçerik |
 |---|---|
-| `Controllers/` | API uç noktaları: Auth, Account, Prompts, Favorites, Users (sadece geliştirmede) |
-| `Services/` | İş mantığı: kullanıcı/hesap, kütüphane, kota, tek kullanımlık kodlar, 2FA, e-posta |
+| `Controllers/` | API uç noktaları: Auth, Account, Prompts, Favorites, Users (sadece geliştirmede ve bu bilgisayardan) |
+| `Services/` | İş mantığı: kullanıcı/hesap, kütüphane, kota, tek kullanımlık kodlar, 2FA, e-posta, arka plan temizliği |
 | `Services/Ai/` | AI sağlayıcı adaptörleri (Claude, GPT, Gemini, DeepSeek) ve optimize servisi |
 | `Models/`, `Data/` | Veritabanı modelleri, DbContext ve EF Core migration'ları |
 | `Dtos/` | API'ye gelen ve dönen veri paketleri |
-| `wwwroot/` | Arayüz: `app.html` çalışma alanı, `auth/` giriş sayfaları |
+| `wwwroot/` | Arayüz: `index.html` tanıtım sayfası, `app.html` çalışma alanı, `auth/` giriş sayfaları |
 | `docs/` | Tasarımla gelen backend entegrasyon notu |
+
+## Güvenlik notları
+
+- Şifreler BCrypt ile, tek kullanımlık kodlar SHA-256 ile saklanır; 2FA secret'ları Data Protection ile şifrelidir (anahtarlar DB'de).
+- Giriş/kayıt/şifre işlemleri IP başına dakikada 10, AI istekleri kullanıcı başına dakikada 12 istekle sınırlı.
+- Aylık kota son hakta bile aşılamaz (`sp_getapplock` ile kullanıcı başına kilit).
+- Yanıtlarda `nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy` başlıkları var; canlıda HSTS açık.
+- JWT tarayıcıda localStorage'da duruyor; ileride httpOnly cookie'ye taşınması planlanıyor.
 
 ## Canlıya alma (ücretsiz: MonsterASP.NET)
 

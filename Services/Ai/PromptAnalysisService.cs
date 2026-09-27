@@ -3,13 +3,11 @@ using PromptForge.Api.Dtos;
 
 namespace PromptForge.Api.Services.Ai
 {
-    /// <summary>
-    /// Promptu AI ile değerlendirir ve kullanıcıya daha iyi prompt yazmayı öğreten yapılandırılmış bir rapor döner.
-    /// Sabit kurallar yerine promptun gerçek içeriğine bakılır; her geri bildirim prompttaki bir ifadeye dayanır.
-    /// </summary>
+    // Promptu AI'a değerlendirtip öğretici bir rapor çıkarıyor. İlk versiyonda kural tabanlıydı ve her prompta
+    // neredeyse aynı şeyi söylüyordu; şimdi her geri bildirim prompttaki gerçek bir ifadeye dayanmak zorunda.
     public class PromptAnalysisService
     {
-        // Kriterler sabit: arayüz her zaman aynı 6 kartı aynı sırayla gösterir.
+        // Arayüz hep aynı 6 kartı aynı sırayla çiziyor.
         private static readonly (string Key, string Label)[] Criteria =
         {
             ("clarity", "Netlik"),
@@ -31,7 +29,8 @@ namespace PromptForge.Api.Services.Ai
             var provider = _optimizer.ResolveProvider(null)
                 ?? throw new AiProviderException("AI anahtarı tanımlı değil.");
 
-            var completion = await provider.CompleteAsync(SystemPrompt, $"<prompt>\n{prompt}\n</prompt>", cancellationToken, jsonOutput: true);
+            var safePrompt = prompt.Replace("</prompt>", "</prompt_>", StringComparison.OrdinalIgnoreCase);
+            var completion = await provider.CompleteAsync(SystemPrompt, $"<prompt>\n{safePrompt}\n</prompt>", cancellationToken, jsonOutput: true);
             var result = Parse(completion.Text);
             result.Source = "ai";
             result.Engine = completion.Model;
@@ -40,7 +39,7 @@ namespace PromptForge.Api.Services.Ai
 
         private static AnalysisResult Parse(string text)
         {
-            // Bazı modeller JSON'u açıklama veya ``` ile sarabilir: ilk { ile son } arasını al.
+            // JSON modu olmayan modeller başına/sonuna açıklama ya da ``` ekleyebiliyor; ilk { ile son } arası.
             var start = text.IndexOf('{');
             var end = text.LastIndexOf('}');
             if (start < 0 || end <= start) throw new AiProviderException("AI analizi okunabilir bir formatta dönmedi.");
@@ -50,8 +49,8 @@ namespace PromptForge.Api.Services.Ai
             catch (JsonException ex) { throw new AiProviderException("AI analizi okunabilir bir formatta dönmedi.", ex); }
             if (parsed == null) throw new AiProviderException("AI analizi boş döndü.");
 
-            // Modelin cevabını olduğu gibi güvenmek yerine sınırlara ve beklenen kriter listesine oturt.
-            var byKey = parsed.Criteria.Where(c => c != null).GroupBy(c => c.Key).ToDictionary(g => g.Key, g => g.First());
+            // Modelin cevabına körü körüne güvenmiyorum: puanları sınırla, eksik kriteri doldur, fazlasını at.
+            var byKey = (parsed.Criteria ?? new()).Where(c => c?.Key != null).GroupBy(c => c.Key!).ToDictionary(g => g.Key, g => g.First());
             parsed.Criteria = Criteria.Select(c =>
             {
                 var item = byKey.GetValueOrDefault(c.Key) ?? new AnalysisCriterion { Feedback = "Bu kriter değerlendirilemedi." };
@@ -62,8 +61,8 @@ namespace PromptForge.Api.Services.Ai
                 return item;
             }).ToList();
             parsed.Overall = Math.Clamp(parsed.Overall, 0, 100);
-            parsed.Strengths = parsed.Strengths.Where(s => !string.IsNullOrWhiteSpace(s)).Take(4).ToList();
-            parsed.Improvements = parsed.Improvements.Where(s => !string.IsNullOrWhiteSpace(s)).Take(3).ToList();
+            parsed.Strengths = (parsed.Strengths ?? new()).Where(s => !string.IsNullOrWhiteSpace(s)).Take(4).ToList();
+            parsed.Improvements = (parsed.Improvements ?? new()).Where(s => !string.IsNullOrWhiteSpace(s)).Take(3).ToList();
             return parsed;
         }
 

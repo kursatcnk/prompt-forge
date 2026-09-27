@@ -1,8 +1,7 @@
 (() => {
   "use strict";
-  // Prompt Analizi: promptu öğretici biçimde değerlendirir.
-  // Önce AI'a sorar (POST /api/prompts/analyze); AI yoksa, hata verirse veya kota dolduysa yerel analize düşer.
-  // Yerel analiz de sabit puan vermez: promptun kelimelerine, rakamlarına, belirsiz ifadelerine bakar ve bunlara atıf yapar.
+  // Önce AI'a soruyor; AI yoksa, hata verirse ya da kota dolduysa yerel analize düşüyor.
+  // Yerel analiz de sabit cümleler kurmuyor, promptun kendi kelimelerine atıf yapıyor.
   const PF = window.PF;
   if (!PF) return;
   const esc = PF.escape;
@@ -12,7 +11,7 @@
   const host = document.querySelector("#kursat-health-results");
   if (!input || !button || !host) return;
 
-  // ===== Yerel analiz =====
+  // Yerel analiz
   const VAGUE = ["bunu", "şunu", "bunları", "şunları", "orayı", "burayı", "iyi bir", "güzel bir", "daha iyi", "bir şeyler", "falan", "filan", "vs.", "vb.", "gibi şeyler", "something", "stuff", "better", "nice"];
   const FILLER = ["lütfen", "rica etsem", "acaba", "mümkünse", "çok çok", "gerçekten", "aslında", "please", "kindly"];
   const TASK_VERBS = /\b(yap|yaz|oluştur|üret|hazırla|incele|analiz et|özetle|çevir|dönüştür|karşılaştır|listele|açıkla|tasarla|düzelt|iyileştir|öner|planla|hesapla|bul|write|create|generate|analy[sz]e|summari[sz]e|translate|compare|list|explain|design|fix|improve|suggest|plan)\w*/i;
@@ -42,7 +41,7 @@
 
     const criteria = [];
 
-    // Netlik: net bir görev fiili var mı, belirsiz ifade var mı?
+    // Netlik: görev fiili var mı, "bunu", "iyi bir şey" gibi belirsiz ifade var mı
     let clarity = (hasTask ? 6 : 2) + (firstSentence.split(/\s+/).length <= 25 ? 2 : 0) + (vague.length ? -2 * Math.min(vague.length, 2) : 2);
     criteria.push({
       key: "clarity", label: "Netlik", score: scoreOf(clarity),
@@ -53,7 +52,7 @@
         : vague.length ? `"${vague[0]}" yerine neyi kastettiğini doğrudan yaz.` : "Görevi bu netlikte tutmaya devam et."
     });
 
-    // Bağlam: kitle, durum, amaç bilgisi ve yeterli uzunluk.
+    // Bağlam: kitle, durum, amaç
     const hasAudience = AUDIENCE.test(text), hasSituation = SITUATION.test(text);
     criteria.push({
       key: "context", label: "Bağlam", score: scoreOf((hasAudience ? 3.5 : 0) + (hasSituation ? 3.5 : 0) + Math.min(3, words.length / 15)),
@@ -64,7 +63,7 @@
       fix: hasAudience && hasSituation ? "Bağlam yeterli görünüyor." : !hasAudience ? "Bir cümle ekle: \"Bu içerik [kimin] için ve onların [ihtiyacı] şu.\"" : "Bir cümle ekle: \"Şu an [durum]; bunu [amaç] için istiyorum.\""
     });
 
-    // Özgüllük: rakam, alıntı, özel isim, değişken.
+    // Özgüllük: rakam, alıntı, özel isim, değişken
     const properNouns = (text.match(/(?<![.!?]\s)(?<!^)\b[A-ZÇĞİÖŞÜ][a-zçğıöşü]{2,}/g) || []).length;
     const specifics = numbers + quotes + variables + Math.min(properNouns, 3);
     criteria.push({
@@ -75,7 +74,7 @@
       fix: specifics >= 3 ? "Somutluğu koru." : "Genel ifadeleri rakam ve isimle değiştir. Örnek: \"kısa\" yerine \"en fazla 120 kelime\"."
     });
 
-    // Kısıtlar: kurallar, yasaklar, sınırlar.
+    // Kısıtlar: kurallar, yasaklar, sınırlar
     criteria.push({
       key: "constraints", label: "Kısıtlar", score: scoreOf(constraintHits ? 4 + constraintHits * 2 : 1),
       feedback: constraintHits ? `${constraintHits} kural veya sınır ifadesi var ("${(lower.match(CONSTRAINT) || [""])[0]}" gibi); model bunlara uymaya çalışacak.`
@@ -83,7 +82,7 @@
       fix: constraintHits >= 2 ? "Kuralları ayrı satırlarda madde madde yazarsan daha az atlanır." : "En az bir kural ekle. Örnek: \"Teknik terim kullanma.\" veya \"Mevcut yapıyı değiştirme.\""
     });
 
-    // Çıktı biçimi: format, uzunluk, yapı.
+    // Çıktı: format, uzunluk, yapı
     criteria.push({
       key: "output", label: "Çıktı biçimi", score: scoreOf(formatWords.length ? 4 + formatWords.length * 2 + (numbers ? 1 : 0) : 1),
       feedback: formatWords.length ? `Beklenen çıktı "${formatWords.slice(0, 3).join("\", \"")}" ile tarif edilmiş.`
@@ -91,7 +90,7 @@
       fix: formatWords.length >= 2 ? "Uzunluğu da sayıyla verirsen daha tutarlı sonuç alırsın." : "Sonuna ekle: \"Çıktıyı 5 maddelik bir liste olarak, her madde en fazla 2 cümle olacak şekilde ver.\""
     });
 
-    // Verimlilik: tekrar, dolgu kelimesi, aşırı uzunluk.
+    // Verimlilik: tekrar, dolgu kelime, gereksiz uzunluk
     const efficiencyPenalty = duplicateSentences * 3 + filler.length * 1.5 + (words.length > 400 ? 2 : 0);
     criteria.push({
       key: "efficiency", label: "Verimlilik", score: scoreOf(10 - efficiencyPenalty),
@@ -126,7 +125,7 @@
     };
   }
 
-  // ===== Görünüm =====
+  // Çizim
   function render(result, notice) {
     const statusText = { good: "İyi", improve: "Geliştirilebilir", missing: "Eksik" };
     const sourceBadge = result.source === "ai"
@@ -179,12 +178,12 @@
         render(data);
         if (data.usage) document.dispatchEvent(new CustomEvent("kursat:usage-changed", { detail: data.usage }));
       } else {
-        // Kota doluysa veya AI kullanılamıyorsa yine de öğretici bir sonuç göster.
+        // AI yoksa da kullanıcı boş ekran görmesin.
         const reason = status === 429 ? data?.message : status === 503 ? `${data?.message || "AI şu an kullanılamıyor."} Yerel analiz gösteriliyor.` : "AI analizine ulaşılamadı; yerel analiz gösteriliyor.";
         if (status === 429 && data?.usage) document.dispatchEvent(new CustomEvent("kursat:usage-changed", { detail: data.usage }));
         render(localAnalysis(text), reason);
       }
-      // Rehberdeki "Promptunu analiz ettir" görevini tamamla.
+      // Rehberdeki görev listesi için.
       document.dispatchEvent(new CustomEvent("kursat:milestone", { detail: "analysis" }));
     } finally {
       button.disabled = false;

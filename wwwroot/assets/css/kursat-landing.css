@@ -1,7 +1,4 @@
-/* ==========================================================================
-   PromptForge — tanıtım sayfası
-   Uygulamayla aynı renk değişkenleri; açık/koyu tema kursat-session.js'teki tercihten gelir.
-   ========================================================================== */
+/* Tanıtım sayfası (index.html). Tema, uygulamada seçilen tercihten geliyor (kursat-session.js). */
 
 :root {
   --bg: #fbfbfa;
@@ -68,7 +65,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .lp-wrap { width: 100%; max-width: 1160px; margin: 0 auto; padding: 0 24px; }
 .lp-narrow { max-width: 780px; }
 
-/* ---------- Butonlar ---------- */
+/* --- Butonlar --- */
 .lp-btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   height: 38px; padding: 0 16px; border-radius: 9px; border: 1px solid transparent;
@@ -89,7 +86,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .lp-link { font-size: 14px; font-weight: 500; color: var(--text-2); padding: 8px 6px; }
 .lp-link:hover { color: var(--text); }
 
-/* ---------- Üst menü ---------- */
+/* --- Üst menü --- */
 .lp-header {
   position: sticky; top: 0; z-index: 20;
   background: color-mix(in srgb, var(--bg) 82%, transparent);
@@ -105,7 +102,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .lp-nav a:hover { color: var(--text); background: var(--surface-2); }
 .lp-header-actions { display: flex; align-items: center; gap: 8px; }
 
-/* ---------- Giriş (hero) ---------- */
+/* --- Giriş (hero) --- */
 .lp-hero { position: relative; padding: 72px 0 96px; overflow: hidden; }
 .lp-hero::before {
   /* İnce ızgara dokusu: kenarlara doğru kaybolur. */
@@ -160,7 +157,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 @keyframes lpSwap { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .lp-demo-foot { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12.5px; color: var(--success); font-weight: 500; }
 
-/* ---------- Bölümler ---------- */
+/* --- Bölümler --- */
 .lp-section { padding: 96px 0; }
 .lp-section--tint { background: var(--tint); border-block: 1px solid var(--border); }
 .lp-section-head { display: grid; gap: 12px; justify-items: center; text-align: center; max-width: 680px; margin: 0 auto 48px; }
@@ -226,7 +223,7 @@ svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width:
 .lp-footer p { font-size: 13.5px; color: var(--muted); }
 .lp-footer p a { color: var(--text-2); text-decoration: underline; text-underline-offset: 3px; }
 
-/* ---------- Duyarlı ---------- */
+/* --- Duyarlı --- */
 @media (max-width: 980px) {
   .lp-nav { display: none; }
   .lp-hero { padding: 48px 0 72px; }

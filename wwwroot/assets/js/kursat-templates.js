@@ -1,6 +1,5 @@
-// Şablon Galerisi ve değişken doldurma.
-// Şablonlardaki {{değişken}} alanları bir pencerede doldurulur; boş bırakılan alan {{…}} olarak kalır
-// ve editörde "Değişkenler" listesinde görünür.
+// Şablon galerisi ve {{değişken}} doldurma penceresi. Boş bırakılan alan {{…}} olarak kalıyor,
+// sonra editörde doldurulabiliyor.
 (() => {
   "use strict";
 
@@ -14,7 +13,7 @@
     daily: "Günlük"
   };
 
-  // Her şablon: kategori, başlık, kısa açıklama, önerilen model ve prompt metni.
+  // model: şablonun en iyi çalıştığı hedef; seçilince editörde o model aktif oluyor.
   const templates = [
     { id: "code-review", cat: "code", title: "Kod incelemesi", desc: "Hataları, güvenlik açıklarını ve okunabilirlik sorunlarını önceliğe göre sıralar.", model: "claude",
       text: `{{dil}} ile yazılmış aşağıdaki kodu kıdemli bir yazılımcı gözüyle incele.
@@ -249,7 +248,7 @@ Sonunda kararımı netleştirecek 3 soru sor.` }
   const esc = value => PF.escape(value);
   const modelName = key => ({ gpt: "GPT", claude: "Claude", gemini: "Gemini", deepseek: "DeepSeek", universal: "Evrensel" }[key] || key);
 
-  // {{ad}} alanlarını sırasıyla ve tekrarsız bul.
+  // Sırayı koruyup tekrarları at.
   function variablesOf(text) {
     const seen = new Set();
     for (const match of String(text).matchAll(/\{\{\s*([^{}]+?)\s*\}\}/g)) seen.add(match[1]);
@@ -290,7 +289,7 @@ Sonunda kararımı netleştirecek 3 soru sor.` }
     }).join("") : `<div class="kursat-empty kursat-template-empty"><div class="kursat-empty-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg></div><h3>Şablon bulunamadı</h3><p>Farklı bir kelime dene veya "Tümü" kategorisine dön.</p></div>`;
   }
 
-  // Değişken doldurma penceresi. Şablonda da, editördeki promptta da kullanılır.
+  // Hem şablonlar hem editördeki değişken rozetleri bu pencereyi kullanıyor.
   function openFill({ title, text, model, source }) {
     const vars = variablesOf(text);
     const body = document.querySelector("#kursat-panel-body");
@@ -344,7 +343,6 @@ Sonunda kararımı netleştirecek 3 soru sor.` }
       const template = templates.find(t => t.id === card?.dataset.kursatTemplate);
       if (template) openFill({ title: template.title, text: template.text, model: template.model, source: "template" });
     });
-    // Editördeki değişken rozetine tıklayınca aynı pencere editördeki metinle açılır.
     document.querySelector("#kursat-variable-list")?.addEventListener("click", event => {
       if (!event.target.closest(".kursat-variable-chip")) return;
       const text = document.querySelector("#kursat-prompt-input")?.value || "";

@@ -6,13 +6,10 @@ using PromptForge.Api.Services.Ai;
 
 namespace PromptForge.Api.Services
 {
-    /// <summary>
-    /// Giriş yapmış kullanıcının kendi hesabıyla ilgili işlemler.
-    /// Tüm metodlar userId'yi token'dan alır; kullanıcı sadece kendi hesabını değiştirebilir.
-    /// </summary>
+    // Giriş yapmış kullanıcının kendi hesabı: profil, ayarlar, şifre, 2FA, hesap silme.
     public class AccountService
     {
-        // Ayarlarda sadece arayüzün tanıdığı değerler kabul edilir; rastgele metin veritabanına yazılamaz.
+        // Ayarlara sadece arayüzün bildiği değerler yazılabilsin.
         private static readonly HashSet<string> Models = new() { "gpt", "claude", "gemini", "deepseek", "universal" };
         private static readonly HashSet<string> Goals = new() { "quality", "balanced", "lean" };
         private static readonly HashSet<string> Themes = new() { "light", "dark", "system" };
@@ -39,6 +36,7 @@ namespace PromptForge.Api.Services
             _users = users;
         }
 
+        // Arayüz açılışta tek istekle her şeyi alsın diye hepsi bir arada.
         public async Task<MeResponse?> GetMeAsync(Guid userId)
         {
             var user = await _context.Users.Include(u => u.Settings).AsNoTracking().FirstOrDefaultAsync(u => u.Id == userId);
@@ -67,7 +65,7 @@ namespace PromptForge.Api.Services
                 _context.UserSettings.Add(settings);
             }
 
-            // Geçersiz değer gelirse eski değer korunur.
+            // Tanımadığım bir değer gelirse eskisini koruyorum.
             if (Models.Contains(dto.Model)) settings.DefaultModel = dto.Model;
             if (Goals.Contains(dto.Goal)) settings.DefaultOptimizationTarget = dto.Goal;
             if (Themes.Contains(dto.Theme)) settings.Theme = dto.Theme;
@@ -122,17 +120,15 @@ namespace PromptForge.Api.Services
             return (true, null);
         }
 
-        /// <summary>Yeni doğrulama kodu gönderir. E-posta zaten doğrulandıysa gönderim yapmaz. Gönderim başarısızsa false.</summary>
+        // Zaten doğrulanmışsa mail atmadan true dönüyor.
         public async Task<bool> ResendVerificationAsync(Guid userId)
         {
             var user = await _context.Users.FirstAsync(u => u.Id == userId);
             return user.EmailConfirmed || await _users.SendEmailVerificationAsync(user);
         }
 
-        /// <summary>
-        /// 2FA kurulumunun ilk adımı: yeni gizli anahtar üretir ve QR kodunu döner.
-        /// Kullanıcı uygulamadan ilk kodu doğrulayana kadar 2FA açılmaz (yanlış kurulumla hesaptan kilitlenmesin).
-        /// </summary>
+        // Secret'ı kaydediyorum ama 2FA'yı henüz açmıyorum. Kullanıcı uygulamadan ilk kodu doğrulamadan açılırsa
+        // yanlış okutulmuş bir QR yüzünden hesabından kilitlenebilir.
         public async Task<TwoFactorSetupResponse?> BeginTwoFactorSetupAsync(Guid userId)
         {
             var user = await _context.Users.FirstAsync(u => u.Id == userId);
@@ -152,7 +148,7 @@ namespace PromptForge.Api.Services
             if (user.TwoFactorEnabled) return (true, null);
             if (string.IsNullOrEmpty(user.TwoFactorSecret))
                 return (false, "Önce kurulumu başlat.");
-            if (!_twoFactor.VerifyCode(_twoFactor.Unprotect(user.TwoFactorSecret), code))
+            if (!_twoFactor.VerifyProtected(user.TwoFactorSecret, code))
                 return (false, "Kod hatalı. Uygulamadaki güncel kodu gir.");
 
             user.TwoFactorEnabled = true;
@@ -172,18 +168,22 @@ namespace PromptForge.Api.Services
             return (true, null);
         }
 
-        /// <summary>
-        /// Hesabı ve tüm verilerini kalıcı olarak siler.
-        /// Favoriler önce silinir (prompt→favori bağlantısı otomatik silinmiyor), gerisi kullanıcıyla birlikte cascade silinir.
-        /// </summary>
+        // Favorileri önce siliyorum: FavoritePrompt → PromptOptimization ilişkisi NoAction, cascade'le silinmiyor.
+        // Geri kalan her şey (geçmiş, ayarlar, kodlar, kullanım) kullanıcıyla birlikte cascade gidiyor.
         public async Task<(bool success, string? error)> DeleteAccountAsync(Guid userId, string? password)
         {
             var user = await _context.Users.AsNoTracking().FirstAsync(u => u.Id == userId);
             if (string.IsNullOrEmpty(password) || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
                 return (false, "Şifre yanlış.");
 
-            await _context.FavoritePrompts.Where(f => f.UserId == userId).ExecuteDeleteAsync();
-            await _context.Users.Where(u => u.Id == userId).ExecuteDeleteAsync();
+            var strategy = _context.Database.CreateExecutionStrategy();
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                await _context.FavoritePrompts.Where(f => f.UserId == userId).ExecuteDeleteAsync();
+                await _context.Users.Where(u => u.Id == userId).ExecuteDeleteAsync();
+                await transaction.CommitAsync();
+            });
             return (true, null);
         }
 

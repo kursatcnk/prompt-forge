@@ -20,7 +20,7 @@
       const id = btn.dataset.kursatDeleteHistory;
       const { ok } = await PF.api.del(`/api/prompts/${id}`);
       if (!ok) { PF.toast("Kayıt silinemedi", "Tekrar dene."); return; }
-      // Sunucu kaydı silince bağlı favoriyi de siliyor; ekranda da ikisinden birden kaldırıyoruz.
+      // Sunucu favoriyi de siliyor, ekranda da iki listeden birden kaldır.
       PF.state.history = PF.state.history.filter(v => v.id !== id);
       PF.state.favorites = PF.state.favorites.filter(v => v.id !== id);
       renderAll();

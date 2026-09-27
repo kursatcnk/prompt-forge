@@ -4,18 +4,15 @@ using System.Net.Mime;
 
 namespace PromptForge.Api.Services
 {
-    /// <summary>Gönderilecek e-posta: konu, düz metin hâli ve HTML hâli.</summary>
+    // Her mail hem düz metin hem HTML gidiyor; HTML göstermeyen istemci düz metni gösteriyor.
     public record EmailMessage(string Subject, string Text, string Html);
 
-    /// <summary>E-posta gönderme sözleşmesi. Uygulama hangi yöntemle gönderildiğini bilmez.</summary>
     public interface IEmailSender
     {
         Task SendAsync(string to, EmailMessage message);
     }
 
-    /// <summary>
-    /// GELİŞTİRME MODU: E-posta gerçekten gönderilmez, düz metin hâli konsola (API'nin terminali) yazılır.
-    /// </summary>
+    // SMTP ayarlanmamışsa bu devrede: mail gitmiyor, içeriği terminale yazıyor. Kodları oradan okuyorum.
     public class ConsoleEmailSender : IEmailSender
     {
         private readonly ILogger<ConsoleEmailSender> _logger;
@@ -23,16 +20,12 @@ namespace PromptForge.Api.Services
 
         public Task SendAsync(string to, EmailMessage message)
         {
-            _logger.LogWarning("\n===== E-POSTA (geliştirme modu, gönderilmedi) =====\nKime : {To}\nKonu : {Subject}\n{Body}\n===================================================", to, message.Subject, message.Text);
+            _logger.LogWarning("\n----- E-POSTA (gönderilmedi) -----\nKime : {To}\nKonu : {Subject}\n{Body}\n----------------------------------", to, message.Subject, message.Text);
             return Task.CompletedTask;
         }
     }
 
-    /// <summary>
-    /// Gerçek e-posta (SMTP). User secrets'ta "Email:Smtp:Host" tanımlıysa bu kullanılır.
-    /// Gmail için: Host=smtp.gmail.com, Port=587, kullanıcı adı=Gmail adresi, şifre=Gmail "uygulama şifresi".
-    /// E-posta hem HTML hem düz metin olarak gider; HTML göstermeyen programlar düz metni gösterir.
-    /// </summary>
+    // Gmail için: smtp.gmail.com:587, kullanıcı adı Gmail adresi, şifre Google'ın "uygulama şifresi".
     public class SmtpEmailSender : IEmailSender
     {
         private readonly IConfiguration _configuration;
@@ -44,7 +37,9 @@ namespace PromptForge.Api.Services
             using var client = new SmtpClient(smtp["Host"], int.TryParse(smtp["Port"], out var port) ? port : 587)
             {
                 EnableSsl = true,
-                // Gmail uygulama şifresini "abcd efgh ijkl mnop" diye gruplu gösterir; boşluklar şifreye dahil değildir.
+                // Varsayılan 100 sn; SMTP takılırsa kayıt ekranı o kadar beklemesin.
+                Timeout = 15_000,
+                // Google uygulama şifresini "abcd efgh ijkl mnop" diye gösteriyor, boşluklar şifrenin parçası değil.
                 Credentials = new NetworkCredential(smtp["Username"], smtp["Password"]?.Replace(" ", ""))
             };
 
@@ -62,10 +57,8 @@ namespace PromptForge.Api.Services
         }
     }
 
-    /// <summary>
-    /// E-posta şablonları. E-posta programları harici CSS'i desteklemediği için stiller satır içi (inline) yazılır.
-    /// Kullanıcıdan gelen metin (ad gibi) HTML'e eklenmeden önce kodlanır (encode); böylece e-postaya kod enjekte edilemez.
-    /// </summary>
+    // Mail istemcileri harici CSS'i sevmiyor, stiller inline.
+    // Kullanıcıdan gelen her şey (ad, link) HTML'e girmeden encode ediliyor.
     public static class EmailTemplates
     {
         public static EmailMessage VerificationCode(string? name, string code) => new(

@@ -50,7 +50,7 @@
   let promptSnapshotIndex = -1;
   let processTimers = [];
 
-  // Editördeki önemli değişiklikleri kendi snapshot zincirimde tutuyorum; tek tek tuş vuruşlarını kaydetmiyorum.
+  // Geri al/yinele için kendi snapshot zincirim; her tuş vuruşunu değil, anlamlı değişiklikleri tutuyor.
   function syncSnapshotButtons() {
     if (undoButton) undoButton.disabled = promptSnapshotIndex <= 0;
     if (redoButton) redoButton.disabled = promptSnapshotIndex < 0 || promptSnapshotIndex >= promptSnapshots.length - 1;
@@ -196,7 +196,7 @@
     return { score, issues, requirements, variables, unresolved, tokens, checks };
   }
 
-  // Senaryoya göre "iyi sonuç" ölçütleri; sadece "En iyi sonuç" hedefinde prompta eklenir.
+  // Sadece "En iyi sonuç" hedefinde prompta ekleniyor.
   const qualityCriteria = {
     general: ["Sonuç ek düzenleme gerektirmeden doğrudan kullanılabilir olmalı.", "Tüm zorunlu kurallar eksiksiz karşılanmalı."],
     coding: ["Önerilen değişiklikler mevcut davranışı bozmamalı.", "Her değişiklik için hangi dosyanın neden değiştiği ve nasıl doğrulanacağı belirtilmeli."],
@@ -205,8 +205,8 @@
     data: ["Alan adları ve türleri tutarlı olmalı.", "Eksik veya hatalı değerlerin nasıl ele alınacağı belirtilmeli."]
   };
 
-  // Yerel kural motoru (AI yokken yedek). Üç hedef bilerek farklı şekil üretir:
-  // lean = başlıksız en kısa hâl, balanced = düzenli ama sade, quality = bağlam + ölçütlerle genişletilmiş.
+  // AI yokken devreye giren yerel motor. Üç hedef bilerek farklı şekil üretiyor:
+  // lean başlıksız ve kısa, balanced düzenli ama sade, quality bağlam ve ölçütlerle genişletilmiş.
   function buildOptimizedPrompt(text, model, goal, analysis) {
     const useCaseKey = useCaseProfiles[PF.state.useCase] ? PF.state.useCase : "general";
     const requirements = analysis.requirements;
@@ -215,7 +215,7 @@
     const requirementSet = new Set(requirements.map(item => item.replace(/\s+/g, " ").trim()));
     const rest = trimmed.slice(objective.length).trim().split(/(?<=[.!?])\s+/).filter(sentence => !requirementSet.has(sentence.trim())).join(" ");
 
-    // Sadece varsayılandan farklı tercihler metne eklenir; "promptun dilinde yanıt ver" gibi zaten doğal olan satırlar eklenmez.
+    // Varsayılan tercihleri yazmıyorum; "promptun dilinde cevap ver" gibi satırlar sadece kalabalık yapıyor.
     const outputLines = [
       PF.state.responseFormat !== "auto" ? formatProfiles[PF.state.responseFormat] : "",
       PF.state.responseLanguage !== "prompt" ? languageProfiles[PF.state.responseLanguage] : ""
@@ -234,7 +234,7 @@
     }
 
     const bullets = items => items.map(item => `- ${item}`).join("\n");
-    // Bölümler: [başlık, Claude için XML etiketi, içerik]. Hangi söz dizimiyle yazılacağına renderForModel karar verir.
+    // [başlık, Claude için XML etiketi, içerik]; nasıl yazılacağına renderForModel karar veriyor.
     const sections = goal === "quality"
       ? [
           ["Bağlam", "context", rest],
@@ -254,7 +254,7 @@
     return renderForModel(model, sections.filter(section => section[2]));
   }
 
-  // Her hedef model, kendi sağlayıcısının önerdiği prompt biçimiyle yazılır; böylece GPT ve Claude sonucu gerçekten farklı görünür.
+  // Her model kendi sağlayıcısının önerdiği biçimle. Sunucudaki TargetModelHint ile aynı kurallar.
   function renderForModel(model, sections) {
     const task = sections.find(section => section[1] === "instructions");
     const others = sections.filter(section => section !== task);
@@ -344,12 +344,11 @@
   function updatePromptMeta(options = {}) {
     const analysis = analyzePrompt(promptInput.value);
     document.querySelector("#kursat-token-count").textContent = `${analysis.tokens} tahmini token`;
-    // Örnek kısayolları sadece editör boşken göster; yazmaya başlayınca yer kaplamasın.
+    // Örnek çipleri editör boşken görünsün, yazmaya başlayınca kaybolsun.
     document.querySelector("#kursat-starter")?.classList.toggle("kursat-hidden", Boolean(promptInput.value.trim()));
     renderPreflight(analysis);
     renderEditorInsights(analysis);
     if (PF.state.draftEnabled) {
-      // Frontend-only önizlemede taslak kalıcı olarak saklanmaz.
       if (!options.silent) showDraftStatus(promptInput.value.trim() ? "Taslak kaydedildi" : "Taslak temizlendi");
     }
   }
@@ -359,7 +358,7 @@
     processTimers = [];
   }
 
-  // Bu geçiş backend geldiğinde de aynı kalacak; yalnızca aşamaları gerçek API durumlarıyla besleyeceğim.
+  // İşleniyor kartındaki adımlar. AI cevabı gelene kadar sırayla ilerliyor, gerçek yüzde değil.
   function beginProcess() {
     stopProcessTimers();
     processCard?.classList.remove("kursat-hidden");
@@ -405,13 +404,13 @@
 
   function setForgeLoading(isLoading) {
     if (!forgeButton) return;
-    // Kota dolduysa işlem bittikten sonra da buton kilitli kalır.
+    // Kota dolduysa iş bitince de kilitli kalsın.
     forgeButton.disabled = isLoading || Boolean(PF.state.quotaExhausted);
     forgeButton.classList.toggle("is-loading", isLoading);
     if (forgeButtonLabel) forgeButtonLabel.textContent = isLoading ? "İşleniyor" : "Optimize Et";
   }
 
-  // AKIŞ: yerel analiz → sunucuda optimize (AI veya yerel yedek) → sonucu analiz et → geçmişe kaydet → göster.
+  // yerel analiz → sunucuda optimize → sonucu tekrar puanla → geçmişe kaydet → göster
   let forging = false;
   async function forge() {
     const text = promptInput.value.trim();
@@ -437,7 +436,7 @@
         askClarifying: PF.state.askClarifying,
         exposeAssumptions: PF.state.exposeAssumptions
       };
-      // Yerel kural motorunun sürümü de gönderilir: AI anahtarı yoksa veya AI hata verirse sunucu bunu kullanır.
+      // Yerel sonucu da yolluyorum; AI yoksa veya hata verirse sunucu bunu geri döndürüyor.
       const localOptimized = buildOptimizedPrompt(text, PF.state.model, PF.state.goal, before);
 
       const optimize = await PF.api.post("/api/prompts/optimize", {
@@ -450,8 +449,8 @@
         variables: before.variables
       });
       if (!optimize.ok) {
-        const quota = optimize.status === 429;
-        // Kota dolduysa sunucunun gönderdiği güncel kullanım bilgisiyle butonu kilitle.
+        const quota = optimize.status === 429 && optimize.data?.code === "quota_exceeded";
+        // Kota dolduysa sunucunun gönderdiği güncel kullanımla butonu kilitle.
         if (quota && optimize.data?.usage) document.dispatchEvent(new CustomEvent("kursat:usage-changed", { detail: optimize.data.usage }));
         showForgeError(quota ? "Aylık kota doldu" : "Optimizasyon tamamlanamadı", optimize.data?.message || "Bağlantını kontrol edip tekrar deneyebilirsin.");
         return;
@@ -476,7 +475,7 @@
         engine: optimize.data.engine
       };
 
-      // Geçmişe kaydet. Kayıt başarısız olsa bile kullanıcı sonucu görür; sadece geçmişte yer almaz.
+      // Kayıt başarısız olsa da sonucu gösteriyorum, sadece geçmişe düşmüyor.
       const saved = await PF.api.post("/api/prompts", draft);
       const record = saved.ok ? saved.data : { ...draft, id: PF.uid("unsaved"), createdAt: new Date().toISOString() };
       if (saved.ok) PF.state.history.unshift(record);
@@ -499,7 +498,7 @@
     }
   }
 
-  // "claude-opus-5" gibi teknik adı kullanıcıya okunur hale getir.
+  // claude-opus-5 → Claude Opus 5
   function engineLabel(engine) {
     if (!engine || engine === "local") return "Yerel kural motoru";
     return `AI · ${engine}`;
@@ -663,7 +662,6 @@
   }));
   document.querySelector("#kursat-clear-prompt").addEventListener("click", () => {
     setPromptValue("");
-    // Kalıcı taslak bulunmadığı için yalnızca editörü temizlemek yeterli.
     result.classList.add("kursat-hidden");
     processCard?.classList.add("kursat-hidden");
   });
@@ -721,7 +719,7 @@
     PF.toast("Dosya hazır", "Optimize edilmiş prompt indirildi.");
   });
 
-  // Favori butonu açma/kapama gibi çalışır: favorideyse çıkarır, değilse ekler.
+  // Toggle: favorideyse çıkar, değilse ekle.
   document.querySelector("#kursat-save-favorite").addEventListener("click", async event => {
     const record = PF.state.currentResult; if (!record) return;
     const button = event.currentTarget;

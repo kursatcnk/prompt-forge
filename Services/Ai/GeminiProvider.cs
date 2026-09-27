@@ -4,13 +4,9 @@ using System.Text.Json.Nodes;
 
 namespace PromptForge.Api.Services.Ai
 {
-    /// <summary>
-    /// Google Gemini adaptörü ("generateContent" REST uç noktası).
-    /// Gemini'de sistem talimatı ayrı bir alanda (systemInstruction) gönderilir.
-    ///
-    /// MODEL YEDEKLEME: Ücretsiz kademede her modelin günlük kotası ayrıdır ve bazıları çok düşüktür (örn. günde 20 istek).
-    /// Bir modelin kotası dolarsa (429) veya model yoğunsa (503), istek listedeki sıradaki modele gönderilir.
-    /// </summary>
+    // Gemini, generateContent REST ucu üzerinden.
+    // Ücretsiz kademede her modelin günlük kotası ayrı ve bazıları çok düşük (3.8-flash'ta günde 20 istek, yaşadım).
+    // Bir model 429/503 verirse aynı isteği listedeki sıradaki modele gönderiyorum.
     public class GeminiProvider : IAiProvider
     {
         private static readonly string[] DefaultFallbacks = { "gemini-3.1-flash-lite", "gemini-3.8-flash" };
@@ -24,7 +20,6 @@ namespace PromptForge.Api.Services.Ai
         {
             _httpClientFactory = httpClientFactory;
             _options = configuration.GetSection("AI:Gemini").Get<AiProviderOptions>() ?? new();
-            // appsettings.json → AI:Gemini:FallbackModels ile değiştirilebilir.
             _fallbackModels = configuration.GetSection("AI:Gemini:FallbackModels").Get<string[]>() ?? DefaultFallbacks;
             _logger = logger;
         }
@@ -38,13 +33,13 @@ namespace PromptForge.Api.Services.Ai
         {
             var body = new JsonObject
             {
+                // Gemini'de sistem talimatı mesajların içinde değil, ayrı alanda.
                 ["systemInstruction"] = new JsonObject { ["parts"] = new JsonArray { new JsonObject { ["text"] = systemPrompt } } },
                 ["contents"] = new JsonArray
                 {
                     new JsonObject { ["role"] = "user", ["parts"] = new JsonArray { new JsonObject { ["text"] = userMessage } } }
                 }
             };
-            // Gemini'ye cevabı doğrudan JSON olarak üretmesini söyler; metnin içinden JSON ayıklamak gerekmez.
             if (jsonOutput)
                 body["generationConfig"] = new JsonObject { ["responseMimeType"] = "application/json" };
 
@@ -58,8 +53,7 @@ namespace PromptForge.Api.Services.Ai
                 }
                 catch (GeminiCapacityException ex)
                 {
-                    // Kota dolu veya model yoğun: sıradaki modeli dene.
-                    _logger.LogWarning("Gemini modeli {Model} kullanılamadı ({Status}), sıradaki modele geçiliyor.", model, ex.Status);
+                    _logger.LogWarning("Gemini modeli {Model} kullanılamadı ({Status}), sıradakine geçiliyor.", model, ex.Status);
                     lastError = new AiProviderException(ex.Status == HttpStatusCode.TooManyRequests
                         ? "Gemini'nin ücretsiz kotası bugün için doldu. Yarın tekrar dene veya başka bir AI anahtarı ekle."
                         : "Gemini sunucuları şu an yoğun. Birazdan tekrar dene.");
@@ -77,7 +71,7 @@ namespace PromptForge.Api.Services.Ai
                 {
                     Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json")
                 };
-                // Anahtar URL'de değil başlıkta gönderilir; böylece sunucu loglarına düşmez.
+                // Anahtar URL yerine header'da; URL'de olsa loglara düşerdi.
                 request.Headers.Add("x-goog-api-key", _options.ApiKey);
                 return request;
             }
@@ -101,18 +95,27 @@ namespace PromptForge.Api.Services.Ai
                     throw new AiProviderException(response.StatusCode switch
                     {
                         HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "Gemini API anahtarı geçersiz.",
-                        // Google eski modelleri zamanla kapatır; bu durumda appsettings.json → AI:Gemini:Model güncellenmeli.
+                        // Google eski modelleri kapatıyor (2.5-flash böyle gitti); o zaman AI:Gemini:Model güncellenmeli.
                         HttpStatusCode.NotFound => $"Gemini modeli bulunamadı ({model}). appsettings.json içindeki AI:Gemini:Model adını kontrol et.",
                         _ => $"Gemini isteği tamamlanamadı ({(int)response.StatusCode})."
                     });
 
-                // Cevap: { candidates: [ { content: { parts: [ { text } ] } } ], usageMetadata: {...} }
+                return Parse(json, model);
+            }
+        }
+
+        // { candidates: [ { content: { parts: [ { text } ] } } ], usageMetadata: { ... } }
+        // Güvenlik filtresine takılınca content hiç gelmeyebiliyor, o yüzden her adımı TryGet ile okuyorum.
+        private static AiCompletion Parse(string json, string model)
+        {
+            try
+            {
                 using var doc = JsonDocument.Parse(json);
                 var root = doc.RootElement;
-                if (!root.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0)
+                if (!root.TryGetProperty("candidates", out var candidates) || candidates.GetArrayLength() == 0
+                    || !candidates[0].TryGetProperty("content", out var content) || !content.TryGetProperty("parts", out var parts))
                     throw new AiProviderException("Gemini bu promptu işlemedi (güvenlik filtresi olabilir).");
 
-                var parts = candidates[0].GetProperty("content").GetProperty("parts");
                 var text = string.Join("\n", parts.EnumerateArray()
                     .Where(p => p.TryGetProperty("text", out _))
                     .Select(p => p.GetProperty("text").GetString())).Trim();
@@ -123,9 +126,13 @@ namespace PromptForge.Api.Services.Ai
                 int Read(string name) => usage.ValueKind == JsonValueKind.Object && usage.TryGetProperty(name, out var v) ? v.GetInt32() : 0;
                 return new AiCompletion(text, Read("promptTokenCount"), Read("candidatesTokenCount"), model);
             }
+            catch (JsonException ex)
+            {
+                throw new AiProviderException("Gemini beklenmedik bir cevap döndürdü.", ex);
+            }
         }
 
-        // Kota dolu (429) veya model yoğun (503): sıradaki modele geçmek için iç kullanım.
+        // Sadece "sıradaki modeli dene" sinyali için; dışarı sızmıyor.
         private sealed class GeminiCapacityException : Exception
         {
             public GeminiCapacityException(HttpStatusCode status) => Status = status;

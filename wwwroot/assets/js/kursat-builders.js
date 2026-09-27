@@ -1,13 +1,11 @@
 (() => {
   "use strict";
-  // Oluştur bölümü: Atölye (rehberli sorular), Akışlar (düzenlenebilir adımlar), Yapı Taşları (parça parça prompt).
-  // Amaç sadece prompt üretmek değil, kullanıcıya iyi promptun neden iyi olduğunu da öğretmek: her alanın yanında "neden" ipucu var.
+  // Atölye, Akışlar ve Yapı Taşları. Her alanın yanında "neden" ipucu var; amaç prompt üretirken yazmayı da öğretmek.
   const PF = window.PF;
   if (!PF) return;
   const esc = PF.escape;
 
-  // ===== ATÖLYE: her amaç için ona özel sorular =====
-  // required: prompt için olmazsa olmaz alan. hint: kullanıcıya bu bilginin modele neden gerektiğini anlatır.
+  // Atölye: her amaca özel sorular. required olmadan prompt üretilmiyor, hint alanın neden önemli olduğunu anlatıyor.
   const routes = [
     {
       id: "produce", title: "Bir şey üret", desc: "Metin, kod, plan veya belge oluştur.",
@@ -110,7 +108,7 @@
     }
   ];
 
-  // ===== AKIŞLAR: adımları düzenlenebilir görev planları =====
+  // Akışlar: adımları düzenlenebilir hazır planlar
   const flows = [
     { id: "debug", title: "Hata ayıklama", desc: "Belirtiyi kanıttan ayır, en küçük düzeltmeye ulaş.", steps: ["Belirtiyi net tanımla", "Son çalışan durumu belirt", "İlgili hata, log veya çıktıyı incele", "Olası nedenleri önem sırasına koy", "En küçük güvenli düzeltmeyi öner", "Düzeltmenin yan etkilerini kontrol et"] },
     { id: "research", title: "Araştırma", desc: "Soruyu daralt, kanıtı değerlendir, sonucu sentezle.", steps: ["Araştırma sorusunu sınırla", "Gerekli zaman aralığını belirt", "Güvenilir kaynak standardını tanımla", "Karşıt veya belirsiz bulguları ayır", "Sonucu kısa bir sentezle bitir"] },
@@ -123,8 +121,7 @@
     { id: "data", title: "Veri analizi", desc: "Veriden soru, bulgu ve öneri çıkar.", steps: ["Verinin yapısını ve alanlarını özetle", "Eksik veya hatalı değerleri tespit et", "Soruyu yanıtlayacak metrikleri hesapla", "Öne çıkan bulguları ve istisnaları açıkla", "Bulgulara dayalı somut öneriler ver"] }
   ];
 
-  // ===== YAPI TAŞLARI: iyi bir promptun parçaları =====
-  // text: kullanıcı boş şablonla değil, düzenleyebileceği gerçek bir örnekle başlar.
+  // Yapı taşları. Boş kutu yerine düzenlenebilir bir örnekle başlıyor, boş kutu kimseye bir şey anlatmıyor.
   const blocks = [
     { id: "role", title: "Rol", why: "Modele bir uzmanlık bakış açısı verir; cevabın derinliği ve dili buna göre değişir.", text: "Deneyimli bir yazılım mimarı gibi düşün." },
     { id: "goal", title: "Amaç", why: "Modelin tam olarak neyi başarması gerektiğini tek cümlede sabitler.", text: "Görevin: Mevcut API'nin yavaş çalışan endpointlerini bul ve hızlandırma önerileri ver." },
@@ -143,12 +140,11 @@
   let flowSteps = [];
   let composed = []; // Yapı taşlarında seçilen parçalar, sıralı: [{ id, title, why, text }]
 
-  // ----- Ortak yardımcılar -----
   function sentences(...parts) { return parts.filter(Boolean).join("\n\n").replace(/\.\./g, ".").trim(); }
   function lines(text) { return String(text || "").split(/\n+/).map(v => v.trim()).filter(Boolean).map(v => `- ${v}`).join("\n"); }
   function icon(path) { return `<span class="kursat-route-icon"><svg viewBox="0 0 24 24"><path d="${path}"/></svg></span>`; }
 
-  // Canlı kalite göstergesi: Optimize ekranındaki analizle aynı ölçüm.
+  // Optimize ekranındaki kalite puanıyla aynı hesap.
   function meter(text) {
     const analysis = window.PFForge?.analyzePrompt(text) || { score: 0, issues: [] };
     const tip = analysis.issues[0];
@@ -180,7 +176,7 @@
     setTimeout(() => builder.scrollIntoView({ behavior: PF.state.motion === "off" ? "auto" : "smooth", block: "start" }), 30);
   }
 
-  // ----- Atölye -----
+  // Atölye
   function renderRoutes() {
     const host = document.querySelector("#kursat-route-grid");
     host.innerHTML = routes.map(route => `<button class="kursat-route-card${activeRoute?.id === route.id ? " is-selected" : ""}" type="button" data-kursat-route="${route.id}">${icon(route.icon)}<h3>${esc(route.title)}</h3><p>${esc(route.desc)}</p></button>`).join("");
@@ -209,7 +205,7 @@
     return Object.fromEntries(activeRoute.fields.map(field => [field.key, document.querySelector(`[data-kursat-route-field="${field.key}"]`)?.value.trim() || ""]));
   }
 
-  // Zorunlu alanlar boşsa prompt üretilmez; önizlemede neyin eksik olduğu yazar.
+  // Zorunlu alan boşsa önizlemede neyin eksik olduğunu yazıyorum.
   function routeText() {
     if (!activeRoute) return "";
     const values = routeValues();
@@ -226,7 +222,7 @@
     return text;
   }
 
-  // ----- Akışlar -----
+  // Akışlar
   function renderFlows() {
     const host = document.querySelector("#kursat-flow-grid");
     host.innerHTML = flows.map(flow => `<button class="kursat-flow-card${activeFlow?.id === flow.id ? " is-selected" : ""}" type="button" data-kursat-flow="${flow.id}"><span class="kursat-badge">${flow.steps.length} adım</span><h3>${esc(flow.title)}</h3><p>${esc(flow.desc)}</p></button>`).join("");
@@ -284,7 +280,7 @@
     return text;
   }
 
-  // ----- Yapı taşları -----
+  // Yapı taşları
   function renderBlocks() {
     const host = document.querySelector("#kursat-block-grid");
     const selected = new Set(composed.map(item => item.id));

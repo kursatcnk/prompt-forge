@@ -1,6 +1,6 @@
-// Rehber: "Başlarken" görev listesi, araç rehberi, iyi prompt dersleri ve ilk girişteki karşılama turu.
-// Görev ilerlemesi hesaptaki gerçek veriden (geçmiş, favoriler, e-posta, 2FA) ve bu tarayıcıdaki
-// küçük işaretlerden (şablon kullandı, analiz yaptı) hesaplanır.
+// Rehber sayfası ve ilk girişteki tanıtım turu.
+// Görevlerin çoğu gerçek veriden hesaplanıyor (geçmiş, favori, 2FA); "şablon kullandı", "analiz yaptı" gibi
+// sunucuda karşılığı olmayanları localStorage'da tutuyorum.
 (() => {
   "use strict";
 
@@ -19,7 +19,6 @@
     render();
   }
 
-  // Başlarken görevleri: tamamlanma durumu + tıklayınca gidilecek yer.
   function tasks() {
     const user = PF.state.account?.user || {};
     const m = readMilestones();
@@ -43,7 +42,7 @@
     ["compare", "Karşılaştır", "İki sürüm arasında kararsızsan.", "Geçmişten iki kaydı yan yana koyar, puan ve metin farkını gösterir."]
   ];
 
-  // İyi promptun 6 ölçütü: Prompt Analizi de aynı ölçütleri kullanır.
+  // Prompt Analizi'ndeki 6 ölçütle aynı: [ad, kural, zayıf örnek, güçlü örnek]
   const lessons = [
     ["Netlik", "Tek bir işi, tek bir fiille iste.", "Bunu daha iyi yap.", "Aşağıdaki e-postayı daha kısa ve daha resmi olacak şekilde yeniden yaz."],
     ["Bağlam", "Kim için ve ne amaçla olduğunu söyle.", "Bir ürün açıklaması yaz.", "25–40 yaş kadın müşterilere satış yapan e-ticaret sitemiz için ürün açıklaması yaz."],
@@ -78,7 +77,7 @@
           ${t.done ? `<span class="kursat-check-state">Tamamlandı</span>` : `<button class="kursat-button" type="button" data-kursat-view="${t.view}">${esc(t.action)}</button>`}
         </li>`).join("")}</ol>`;
 
-    // Menüdeki "Rehber" yanında ilerleme rozeti.
+    // Menüdeki 2/6 rozeti; hepsi bitince kayboluyor.
     const badge = document.querySelector("#kursat-guide-badge");
     if (badge) { badge.textContent = `${done}/${list.length}`; badge.classList.toggle("kursat-hidden", done === list.length); }
   }
@@ -110,7 +109,7 @@
     renderStatic();
   }
 
-  // İlk girişte bir kez gösterilen karşılama penceresi (3 adım).
+  // İlk girişte bir kez açılan 3 adımlık tur.
   const tourSteps = [
     { kicker: "Hoş geldin", title: "PromptForge promptlarını güçlendirir.", copy: "Yazdığın promptu okur, eksik bağlamı ve belirsiz ifadeleri bulur, seçtiğin modelin en iyi anladığı biçimde yeniden yazar.", visual: `<div class="kursat-tour-visual"><div class="kursat-tour-before">Blog yazısı yaz.</div><svg viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></svg><div class="kursat-tour-after"><b>Rol</b> · <b>Görev</b> · <b>Bağlam</b> · <b>Kurallar</b> · <b>Çıktı</b></div></div>` },
     { kicker: "Nasıl kullanılır", title: "Üç adım yeterli.", copy: "", visual: `<ol class="kursat-tour-steps"><li><b>1</b><div><strong>Yaz</strong><span>Promptunu editöre yaz ya da bir şablonla başla.</span></div></li><li><b>2</b><div><strong>Seç</strong><span>Hedef modeli (GPT, Claude, Gemini…) ve hedefini seç.</span></div></li><li><b>3</b><div><strong>Kullan</strong><span>Sonucu kopyala, favorile, sürümleri karşılaştır.</span></div></li></ol>` },
@@ -150,7 +149,7 @@
     document.addEventListener("kursat:milestone", event => markMilestone(event.detail));
     document.addEventListener("kursat:view", event => { if (event.detail.name === "guide") render(); });
     document.addEventListener("kursat:account-loaded", render);
-    // Hesap, geçmiş ve favoriler yüklendikten sonra (kursat-core bu olayı en son gönderir) turu bir kez değerlendir.
+    // data-changed bootstrap'in en sonunda geliyor; geçmiş yüklenmeden karar verirsem eski kullanıcılara da tur açılıyor.
     let tourChecked = false;
     document.addEventListener("kursat:data-changed", () => {
       render();
@@ -158,7 +157,6 @@
       tourChecked = true;
       let welcomed = false;
       try { welcomed = !!localStorage.getItem(storeKey("welcomed")); } catch { welcomed = true; }
-      // Yeni hesaplarda (henüz hiç optimizasyon yoksa) turu göster; eski kullanıcıları rahatsız etme.
       if (!welcomed && PF.state.history.length === 0) setTimeout(() => openTour(0), 500);
     });
   }

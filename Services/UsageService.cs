@@ -5,13 +5,10 @@ using PromptForge.Api.Models;
 
 namespace PromptForge.Api.Services
 {
-    /// <summary>
-    /// Plan ve aylık kota yönetimi.
-    /// Her optimizasyon UsageTracking tablosuna bir satır yazar; kota bu ayki satır sayısıdır.
-    /// </summary>
+    // Plan ve aylık kota. Kota = bu ay UsageTracking'e yazılan satır sayısı.
     public class UsageService
     {
-        /// <summary>Plan tanımları. Ödeme sistemi eklendiğinde fiyatlar da buradan yönetilebilir.</summary>
+        // Ödeme eklenince fiyatlar da buradan yönetilir.
         public static readonly IReadOnlyList<PlanDefinition> Plans = new[]
         {
             new PlanDefinition("free", "Ücretsiz", 50, "0 ₺", new[] { "Aylık 50 optimizasyon", "Tüm hedef modeller", "Geçmiş ve favoriler", "Prompt analizi" }),
@@ -24,9 +21,15 @@ namespace PromptForge.Api.Services
 
         public static PlanDefinition GetPlan(string? plan) => Plans.FirstOrDefault(p => p.Key == plan) ?? Plans[0];
 
+        private static DateTime MonthStartUtc()
+        {
+            var now = DateTime.UtcNow;
+            return new DateTime(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        }
+
         public async Task<UsageDto> GetUsageAsync(Guid userId, string plan)
         {
-            var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var monthStart = MonthStartUtc();
             var used = await _context.UsageTracking.CountAsync(t => t.UserId == userId && t.Date >= monthStart);
             return new UsageDto
             {
@@ -37,19 +40,15 @@ namespace PromptForge.Api.Services
             };
         }
 
-        /// <summary>
-        /// İşe başlamadan önce kotadan bir hak ayırır. Kota doluysa null döner.
-        ///
-        /// YARIŞ DURUMU: Kotanın son hakkında aynı anda gelen iki istek, ikisi de "yer var" görüp geçebilir.
-        /// Bunu önlemek için SQL Server'ın uygulama kilidi (sp_getapplock) ile aynı kullanıcının istekleri
-        /// sıraya sokulur: kilit al → say → yer varsa hakkı ekle → kilidi bırak. Farklı kullanıcılar birbirini beklemez.
-        /// </summary>
+        // Son hakta aynı anda gelen iki istek ikisi de "yer var" görüp geçebiliyordu (paralel testte yakaladım).
+        // sp_getapplock ile aynı kullanıcının istekleri sıraya giriyor: kilit → say → yer varsa ekle → commit.
+        // Kilit kullanıcıya özel, farklı kullanıcılar birbirini beklemiyor.
         public async Task<Guid?> TryReserveAsync(Guid userId, string plan)
         {
             var limit = GetPlan(plan).MonthlyLimit;
-            var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var monthStart = MonthStartUtc();
 
-            // Bağlantı hatasında tekrar deneme (EnableRetryOnFailure) açık olduğu için transaction bu strateji içinde çalışmalı.
+            // EnableRetryOnFailure açıkken elle transaction açmak için execution strategy şart.
             var strategy = _context.Database.CreateExecutionStrategy();
             return await strategy.ExecuteAsync(async () =>
             {
@@ -75,12 +74,11 @@ namespace PromptForge.Api.Services
                 };
                 _context.UsageTracking.Add(reservation);
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync(); // Kilit transaction'la birlikte serbest kalır.
+                await transaction.CommitAsync(); // kilit transaction'la birlikte bırakılıyor
                 return (Guid?)reservation.Id;
             });
         }
 
-        /// <summary>Ayrılan hakkı, işi kimin yaptığı ve harcanan token bilgisiyle tamamlar.</summary>
         public async Task CompleteAsync(Guid reservationId, string provider, int? tokens)
         {
             var row = await _context.UsageTracking.FindAsync(reservationId);
@@ -90,7 +88,7 @@ namespace PromptForge.Api.Services
             await _context.SaveChangesAsync();
         }
 
-        /// <summary>İş yapılamadıysa (örn. AI analizi başarısız) ayrılan hakkı iade eder.</summary>
+        // İş olmadıysa (AI cevap vermedi vs.) hak geri veriliyor.
         public async Task ReleaseAsync(Guid reservationId) =>
             await _context.UsageTracking.Where(t => t.Id == reservationId).ExecuteDeleteAsync();
     }

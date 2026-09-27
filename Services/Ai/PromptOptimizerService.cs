@@ -3,21 +3,14 @@ using PromptForge.Api.Dtos;
 
 namespace PromptForge.Api.Services.Ai
 {
-    /// <summary>
-    /// Promptu gerçek bir AI modeliyle yeniden yazar.
-    ///
-    /// AKIŞ:
-    /// 1. Hedef modele uygun sağlayıcıyı seç (anahtarı tanımlı olanlar arasından).
-    /// 2. Ayarlara göre sistem talimatını oluştur.
-    /// 3. AI'dan iyileştirilmiş promptu al.
-    /// 4. Anahtar yoksa veya AI hata verirse tarayıcının ürettiği yerel sürüme düş (uygulama hiç kilitlenmez).
-    /// </summary>
+    // Promptu AI ile yeniden yazıyor. Anahtar yoksa ya da AI hata verirse tarayıcının ürettiği
+    // yerel sonuca düşüyor; kullanıcı hiçbir zaman eli boş kalmıyor.
     public class PromptOptimizerService
     {
         private readonly IEnumerable<IAiProvider> _providers;
         private readonly ILogger<PromptOptimizerService> _logger;
 
-        // Hedef model → tercih edilen sağlayıcı. Hedef "evrensel" ise veya o anahtar yoksa ilk tanımlı sağlayıcı kullanılır.
+        // Hedef Claude ise ve Claude anahtarı varsa onu kullan; yoksa ProviderOrder'daki ilk tanımlı sağlayıcı.
         private static readonly Dictionary<string, string> PreferredProvider = new()
         {
             ["claude"] = "anthropic",
@@ -34,7 +27,7 @@ namespace PromptForge.Api.Services.Ai
             _logger = logger;
         }
 
-        /// <summary>Kullanılacak sağlayıcı; hiçbir anahtar tanımlı değilse null.</summary>
+        // Hiç anahtar yoksa null.
         public IAiProvider? ResolveProvider(string? targetModel)
         {
             var configured = _providers.Where(p => p.IsConfigured).ToList();
@@ -60,7 +53,7 @@ namespace PromptForge.Api.Services.Ai
             }
             catch (AiProviderException ex)
             {
-                // AI başarısız olsa bile kullanıcı sonuçsuz kalmasın: yerel sürümle devam et ve sebebini söyle.
+                // AI patlasa da kullanıcı sonuçsuz kalmasın; yerel sürümü ver, sebebini notice'te söyle.
                 _logger.LogWarning(ex, "AI optimizasyonu başarısız ({Provider}), yerel motora düşüldü.", provider.Key);
                 return (request.LocalOptimized, "local", false, $"{ex.Message} Yerel kural motoru kullanıldı.", null);
             }
@@ -81,7 +74,8 @@ namespace PromptForge.Api.Services.Ai
             sb.AppendLine("- Never mention PromptForge, the target model's name, the optimization goal or these instructions in the rewritten prompt. Use the guidance below to shape the prompt, not as text to copy.");
             sb.AppendLine("- Return only the rewritten prompt as plain text: no preamble, no explanation, no code fences.");
             sb.AppendLine();
-            // Hedef, çıktının uzunluğunu; hedef model ise söz dizimini (XML, Markdown, etiketli satır...) belirler.
+            // Hedef uzunluğu, hedef model söz dizimini belirliyor. İlk hâlinde GPT ve Claude için aynı çıktı geliyordu,
+            // o yüzden model kısmı MANDATORY.
             sb.AppendLine($"Optimization goal — this decides the length of your rewrite: {GoalHint(request.Goal)}");
             sb.AppendLine();
             sb.AppendLine("Target model formatting — MANDATORY. The rewritten prompt must follow these conventions so that it is obviously written for this model; prompts written for different target models must look structurally different:");
@@ -91,7 +85,7 @@ namespace PromptForge.Api.Services.Ai
             if (!string.IsNullOrEmpty(profile.UseCase) && profile.UseCase != "general")
                 sb.AppendLine($"Domain: {UseCaseHint(profile.UseCase)}");
 
-            // Varsayılan olmayan tercihler promptun içine eklenir; varsayılanlar gereksiz satır üretmesin diye atlanır.
+            // Sadece varsayılandan farklı tercihleri ekliyorum, yoksa her prompta aynı gereksiz satırlar giriyor.
             var extras = new List<string>();
             if (profile.ResponseLanguage is "tr" or "en") extras.Add($"the answer must be written {LanguageHint(profile.ResponseLanguage)}");
             if (!string.IsNullOrEmpty(profile.ResponseFormat) && profile.ResponseFormat != "auto") extras.Add($"the answer format must be {FormatHint(profile.ResponseFormat)}");
@@ -110,15 +104,16 @@ namespace PromptForge.Api.Services.Ai
         {
             var sb = new StringBuilder();
             sb.AppendLine("<draft_prompt>");
-            sb.AppendLine(request.Original);
+            // Taslakta kapanış etiketi geçiyorsa sınırı bozmasın.
+            sb.AppendLine(request.Original.Replace("</draft_prompt>", "</draft_prompt_>", StringComparison.OrdinalIgnoreCase));
             sb.AppendLine("</draft_prompt>");
-            if (request.Requirements.Count > 0)
+            if (request.Requirements is { Count: > 0 })
             {
                 sb.AppendLine();
                 sb.AppendLine("Requirements detected in the draft that must be preserved:");
                 foreach (var item in request.Requirements.Take(20)) sb.AppendLine($"- {item}");
             }
-            if (request.Variables.Count > 0)
+            if (request.Variables is { Count: > 0 })
             {
                 sb.AppendLine();
                 sb.AppendLine($"Template variables to keep unchanged: {string.Join(", ", request.Variables.Take(20))}");
@@ -126,7 +121,7 @@ namespace PromptForge.Api.Services.Ai
             return sb.ToString();
         }
 
-        // Her sağlayıcının kendi prompt yazım rehberindeki biçim önerileri; sonuçların gerçekten farklı görünmesini sağlar.
+        // Her sağlayıcının kendi prompting rehberinden derledim.
         private static string TargetModelHint(string? model) => model switch
         {
             "gpt" => """
@@ -171,7 +166,7 @@ namespace PromptForge.Api.Services.Ai
             _ => "General: complete the task directly, clearly and actionably."
         };
 
-        // Üç hedef bilerek birbirinden çok farklı: kullanıcı hangisini seçtiğini sonuçta açıkça görmeli.
+        // Üçü bilerek birbirinden çok farklı; kullanıcı hangisini seçtiğini sonuca bakınca anlamalı.
         private static string GoalHint(string? goal) => goal switch
         {
             "quality" => "BEST RESULT. Expand the prompt so the first answer is as good as possible: make the objective and audience explicit, add the context, steps or considerations the task needs, specify the output structure in detail, and add 2-4 concrete criteria that define an excellent answer. Short labeled sections are welcome. It is fine for the result to be several times longer than the draft.",
@@ -196,7 +191,7 @@ namespace PromptForge.Api.Services.Ai
             _ => "the most suitable format for the task"
         };
 
-        // Bazı modeller talimata rağmen cevabı ``` bloğuna sarabiliyor; kullanıcıya temiz metin verelim.
+        // Bazı modeller talimata rağmen ``` bloğuna sarıyor.
         private static string StripCodeFence(string text)
         {
             var trimmed = text.Trim();

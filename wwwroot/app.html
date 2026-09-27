@@ -6,7 +6,7 @@
   <meta name="description" content="PromptForge; GPT, Claude, Gemini ve DeepSeek için promptları daha net, daha verimli ve daha kontrollü hale getirir.">
   <title>PromptForge</title>
   <link rel="icon" href="assets/img/kursat-promptforge-mark.svg" type="image/svg+xml">
-  <!-- Giriş kontrolü: token yoksa sayfa çizilmeden giriş ekranına yönlendir. -->
+  <!-- token yoksa sayfa hiç çizilmeden girişe gitsin -->
   <script src="assets/js/kursat-session.js?v=6"></script>
   <script>
     PromptForgeSession.requireAuth("auth/sign-in.html");
@@ -17,7 +17,7 @@
 </head>
 <body>
 <div class="kursat-app">
-  <!-- Sol menüyü burada tutuyorum; mobilde aynı menüyü drawer olarak açıyorum. -->
+  <!-- mobilde aynı menü soldan açılan drawer oluyor -->
   <aside class="kursat-sidebar" id="kursat-sidebar" aria-label="Ana menü">
     <div class="kursat-brand-row">
       <button class="kursat-brand" type="button" data-kursat-view="forge" aria-label="PromptForge ana çalışma alanı">
@@ -86,7 +86,7 @@
     </header>
 
     <div class="kursat-content" id="kursat-main-content" tabindex="-1">
-      <!-- Optimize Et: ana çalışma alanı. Editör ilk ekranda; ayarlar editörün içinde, kalite paneli sağda. -->
+      <!-- Optimize Et -->
       <section class="kursat-view is-active" id="kursat-view-forge" data-kursat-title="Optimize Et" data-kursat-group="Çalışma alanı">
         <div class="kursat-page-head">
           <div class="kursat-page-head-copy"><p class="kursat-eyebrow" id="kursat-forge-eyebrow">Çalışma alanı</p><h1 id="kursat-forge-title">Optimize Et</h1><p>Promptunu yaz, hedef modeli ve amacını seç. Sonuç, seçtiğin modelin en iyi anladığı biçimde yeniden yazılır.</p></div>
@@ -283,7 +283,7 @@
         <div class="kursat-page-head"><div class="kursat-page-head-copy"><h1>Ayarlar</h1><p>Hesabın, güvenliğin, planın ve çalışma alanı tercihlerin.</p></div></div>
         <div class="kursat-settings-grid">
           <article class="kursat-card kursat-settings-card"><h3>Varsayılanlar</h3><p>Optimize ekranı bu tercihlerle açılır.</p><div class="kursat-field"><label for="kursat-setting-model">Varsayılan model</label><select class="kursat-select" id="kursat-setting-model"><option value="gpt">GPT</option><option value="claude">Claude</option><option value="gemini">Gemini</option><option value="deepseek">DeepSeek</option><option value="universal">Evrensel</option></select></div><div class="kursat-field kursat-field--spaced"><label for="kursat-setting-goal">Varsayılan hedef</label><select class="kursat-select" id="kursat-setting-goal"><option value="quality">En iyi sonuç</option><option value="balanced">Dengeli</option><option value="lean">En düşük kullanım</option></select></div></article>
-          <!-- Hesap, güvenlik, plan ve tehlikeli bölge kartlarının içeriği kursat-account.js ile sunucudan doldurulur. -->
+          <!-- bu kartları kursat-account.js dolduruyor -->
           <article class="kursat-card kursat-settings-card" id="kursat-account-card"><h3>Hesap</h3><p>Profil bilgilerin ve giriş şifren.</p><div class="kursat-empty-mini">Yükleniyor…</div></article>
           <article class="kursat-card kursat-settings-card" id="kursat-security-card"><h3>Güvenlik</h3><p>E-posta doğrulama ve iki adımlı doğrulama.</p><div class="kursat-empty-mini">Yükleniyor…</div></article>
           <article class="kursat-card kursat-settings-card" id="kursat-plan-card"><h3>Plan ve kullanım</h3><p>Aylık optimizasyon kotan ve AI motoru durumu.</p><div class="kursat-empty-mini">Yükleniyor…</div></article>
@@ -313,7 +313,7 @@
   <section class="kursat-modal" role="dialog" aria-modal="true" aria-labelledby="kursat-confirm-title"><div class="kursat-modal-head"><h2 id="kursat-confirm-title">Emin misin?</h2><button class="kursat-icon-button" id="kursat-confirm-close" type="button" aria-label="Kapat"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="kursat-modal-body"><p class="kursat-confirm-copy" id="kursat-confirm-message"></p></div><div class="kursat-modal-foot"><button class="kursat-button" id="kursat-confirm-cancel" type="button">Vazgeç</button><button class="kursat-button kursat-button--danger" id="kursat-confirm-ok" type="button">Devam et</button></div></section>
 </div>
 
-<!-- Planlar ve 2 adımlı doğrulama kurulumu gibi pencerelerin ortak kabı; içeriği kursat-account.js doldurur. -->
+<!-- plan, 2FA, şablon ve tur pencerelerinin ortak kabı -->
 <div class="kursat-modal-backdrop" id="kursat-panel-backdrop" aria-hidden="true">
   <section class="kursat-modal" role="dialog" aria-modal="true" aria-labelledby="kursat-panel-title"><div class="kursat-modal-head"><h2 id="kursat-panel-title"></h2><button class="kursat-icon-button" data-kursat-panel-close type="button" aria-label="Kapat"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="kursat-modal-body" id="kursat-panel-body"></div></section>
 </div>

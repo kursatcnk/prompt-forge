@@ -1,8 +1,10 @@
+using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -10,34 +12,22 @@ using PromptForge.Api.Data;
 using PromptForge.Api.Services;
 using PromptForge.Api.Services.Ai;
 
-/// ====================================================================
-/// PromptForge ASP.NET Core Web API - Uygulama Başlangıç Noktası
-/// ====================================================================
-///
-/// GÖREV: Servisleri kaydetmek, istek sırasını (middleware) kurmak ve uygulamayı başlatmak.
-///
-/// AKIŞ:
-/// 1. WebApplication.CreateBuilder() → Servisleri ekle (Dependency Injection)
-/// 2. app.Build() → Middleware sırasını kur
-/// 3. app.Run() → Uygulamayı başlat ve HTTP isteklerini bekle
-///
-/// ====================================================================
-
 var builder = WebApplication.CreateBuilder(args);
 
-// Canlı ortamda örnek JWT anahtarıyla çalışmayı engelle: bu anahtar GitHub'da herkese açık.
+// appsettings.json'daki örnek anahtar GitHub'da açık duruyor, canlıda onunla ayağa kalkmasın.
+// HS256 en az 32 byte istiyor; kısa anahtarda hata ilk girişte değil burada çıksın.
 const string SampleJwtSecret = "your-super-secret-key-minimum-32-characters-long-here-12345678";
-if (!builder.Environment.IsDevelopment() && builder.Configuration["Jwt:Secret"] == SampleJwtSecret)
-    throw new InvalidOperationException("Jwt:Secret canlı ortamda değiştirilmeli (user secrets veya ortam değişkeni ile).");
-
-// ===== 1. API VE SWAGGER =====
+var jwtSecret = builder.Configuration["Jwt:Secret"] ?? "";
+if (Encoding.UTF8.GetByteCount(jwtSecret) < 32)
+    throw new InvalidOperationException("Jwt:Secret en az 32 karakter olmalı.");
+if (!builder.Environment.IsDevelopment() && jwtSecret == SampleJwtSecret)
+    throw new InvalidOperationException("Canlı ortamda Jwt:Secret değiştirilmeli (user secrets veya appsettings.Production.json).");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // Swagger sayfasına "Authorize" butonu ekler: token'ı bir kez yapıştırırsın,
-    // kilitli endpoint'leri tarayıcıdan test ederken otomatik gönderilir.
+    // Swagger'da Authorize butonu çıksın, token'ı bir kere yapıştırınca tüm isteklerde gitsin.
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -45,7 +35,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Login'den aldığın token'ı yapıştır (başına 'Bearer' yazma)."
+        Description = "Login'den dönen token (başına Bearer yazmadan)."
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -56,20 +46,13 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-// ===== 2. KİMLİK DOĞRULAMA (JWT) =====
-
-/// Gelen isteklerdeki "Authorization: Bearer {token}" başlığını otomatik kontrol eder:
-/// - İmza bizim gizli anahtarımızla mı atılmış? (sahte token'ı engeller)
-/// - Issuer/Audience doğru mu? (başka bir uygulamanın token'ını engeller)
-/// - Süresi dolmuş mu?
-/// [Authorize] etiketi olan endpoint'ler geçerli token yoksa 401 döner.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"] ?? "")),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
             ValidateIssuer = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidateAudience = true,
@@ -79,53 +62,55 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// ===== 3. RATE LIMITING (deneme sınırı) =====
-
-/// Giriş, kayıt ve şifre sıfırlama endpoint'lerinde aynı IP'den dakikada en fazla 10 istek.
-/// Şifre tahmin (brute force) ve e-posta bombardımanı saldırılarını yavaşlatır. Aşılırsa 429 döner.
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    // Giriş/kayıt/şifre sıfırlama: IP başına dakikada 10. Brute force ve mail bombardımanı için.
     options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
         context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+
+    // AI çağrıları: aylık kota zaten var ama birinin 50 hakkı 10 saniyede yakmasını da istemiyorum.
+    options.AddPolicy("ai", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.User.FindFirstValue(ClaimTypes.NameIdentifier) ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 12, Window = TimeSpan.FromMinutes(1) }));
 });
 
-// ===== 4. VERİTABANI =====
-
-/// appsettings.json'daki bağlantı adresiyle EF Core'u SQL Server'a bağla.
-/// EnableRetryOnFailure: anlık bağlantı kopmalarında sorguyu 5 kez tekrar dener.
 builder.Services.AddDbContext<PromptForgeDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql =>
         sql.EnableRetryOnFailure(maxRetryCount: 5)));
 
-/// Data Protection: 2FA gizli anahtarlarını veritabanına şifreli yazmak için kullanılır.
-/// Şifreleme anahtarları da veritabanında saklanır: paylaşımlı hosting'te sunucu yeniden başladığında
-/// anahtarlar kaybolursa kullanıcıların 2FA'sı çalışmaz hâle gelirdi.
+// 2FA secret'larını şifreliyor. Anahtarları DB'de tutuyorum; paylaşımlı hosting'te
+// uygulama yeniden başlayınca anahtar kaybolursa herkesin 2FA'sı bozuluyor.
 builder.Services.AddDataProtection()
     .SetApplicationName("PromptForge")
     .PersistKeysToDbContext<PromptForgeDbContext>();
 
-// ===== 5. SERVİS KATMANI =====
+builder.Services.AddHealthChecks().AddDbContextCheck<PromptForgeDbContext>("database");
 
-/// AddScoped: Her HTTP isteği için servisin yeni bir kopyası oluşur (DbContext ile aynı ömür).
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<PromptLibraryService>();
 builder.Services.AddScoped<UsageService>();
 builder.Services.AddScoped<OneTimeCodeService>();
 builder.Services.AddSingleton<TwoFactorService>();
+builder.Services.AddHostedService<CleanupService>();
 
-/// E-posta: SMTP ayarı varsa gerçek e-posta, yoksa geliştirme modu (içerik konsola yazılır).
+// SMTP tanımlı değilse mailler terminale düşüyor, geliştirirken işimi görüyor.
 if (!string.IsNullOrWhiteSpace(builder.Configuration["Email:Smtp:Host"]))
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 else
     builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
 
-// ===== 6. AI SAĞLAYICILARI =====
-
-/// Tüm sağlayıcılar aynı arayüzle (IAiProvider) kaydedilir; PromptOptimizerService hepsini liste olarak alır
-/// ve anahtarı tanımlı olanı seçer. Anahtarlar kodda değil user secrets'ta durur (bkz. README).
+// Hepsi IAiProvider olarak kayıtlı; optimizer anahtarı tanımlı olanı kendisi seçiyor.
 builder.Services.AddHttpClient("ai", client => client.Timeout = TimeSpan.FromSeconds(90));
 builder.Services.AddSingleton<IAiProvider, AnthropicProvider>();
 builder.Services.AddSingleton<IAiProvider, OpenAiProvider>();
@@ -134,25 +119,17 @@ builder.Services.AddSingleton<IAiProvider, DeepSeekProvider>();
 builder.Services.AddSingleton<PromptOptimizerService>();
 builder.Services.AddSingleton<PromptAnalysisService>();
 
-// ===== 7. UYGULAMAYI OLUŞTUR =====
-
 var app = builder.Build();
 
-/// Uygulama açılırken bekleyen migration'ları veritabanına uygular.
-/// Böylece canlı sunucuda tablolar ilk açılışta kendiliğinden oluşur; elle SQL çalıştırmak gerekmez.
+// Bekleyen migration'lar açılışta uygulanıyor, sunucuda elle SQL çalıştırmaya gerek kalmıyor.
 using (var scope = app.Services.CreateScope())
 {
     scope.ServiceProvider.GetRequiredService<PromptForgeDbContext>().Database.Migrate();
 }
 
-// ===== 8. MIDDLEWARE SIRASI =====
-
-/// Gelen her istek yukarıdan aşağıya bu adımlardan geçer.
-
-/// Site bir tünel veya proxy arkasında yayınlandığında (Dev Tunnels, Cloudflare vb.) istekler uygulamaya
-/// 127.0.0.1'den geliyormuş gibi görünür. Proxy'nin eklediği X-Forwarded-* başlıklarından gerçek kullanıcı IP'si,
-/// https ve site adresi okunur: deneme sınırı herkese ayrı işler, e-postadaki linkler doğru adrese gider.
-/// Varsayılan olarak yalnızca aynı bilgisayardan (loopback) gelen başlıklara güvenilir.
+// Tünel/proxy arkasında her istek 127.0.0.1'den geliyor gibi görünüyor. Gerçek IP ve https bilgisini
+// X-Forwarded-* başlıklarından al; yoksa rate limit herkes için ortak işliyor, maildeki linkler localhost'a gidiyor.
+// Varsayılan ayarda sadece loopback'ten gelen başlıklara güveniliyor.
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
@@ -160,13 +137,12 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 
 if (app.Environment.IsDevelopment())
 {
-    // http://localhost:5299/swagger → API test sayfası (sadece geliştirmede).
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 else
 {
-    // Canlıda beklenmeyen hatalarda kullanıcıya iç detay (stack trace) gösterme.
+    // Canlıda stack trace dışarı sızmasın.
     app.UseExceptionHandler(errorApp => errorApp.Run(context =>
         Results.Problem("Beklenmeyen bir hata oluştu.").ExecuteAsync(context)));
     app.UseHsts();
@@ -174,22 +150,33 @@ else
 
 app.UseHttpsRedirection();
 
-/// wwwroot klasöründeki arayüzü (HTML, CSS, JS) sun. Site ve API aynı adreste çalıştığı için CORS gerekmez.
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers.XContentTypeOptions = "nosniff";
+    headers.XFrameOptions = "DENY";
+    headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()";
+    await next();
+});
+
+app.UseResponseCompression();
+
+// Site ile API aynı origin'de, CORS'a gerek yok.
 app.UseDefaultFiles();
-// no-cache: tarayıcı dosyayı kullanmadan önce sunucuya "değişti mi?" diye sorar. Değişmediyse cevap 304 (boş) olur;
-// böylece arayüz güncellenince kullanıcılar eski JS/CSS ile çalışmaya devam etmez.
+// no-cache: tarayıcı her seferinde "değişti mi" diye soruyor, değişmediyse 304 geliyor.
+// Arayüzü güncellediğimde kimse eski JS ile kalmasın diye.
 app.UseStaticFiles(new StaticFileOptions
 {
     OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "no-cache"
 });
 
-app.UseRateLimiter();
-
-/// Önce "sen kimsin?" (Authentication: token'ı oku ve doğrula),
-/// sonra "buna yetkin var mı?" (Authorization: [Authorize] kuralını uygula).
 app.UseAuthentication();
 app.UseAuthorization();
+// "ai" limiti kullanıcı id'sine göre çalışıyor, o yüzden authentication'dan sonra.
+app.UseRateLimiter();
 
+app.MapHealthChecks("/health");
 app.MapControllers();
 
 app.Run();

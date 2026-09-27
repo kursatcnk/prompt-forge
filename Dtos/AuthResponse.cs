@@ -1,10 +1,7 @@
 namespace PromptForge.Api.Dtos
 {
-    /// <summary>
-    /// Giriş/Kayıt yanıtı.
-    /// Normal giriş: { success: true, token, user }
-    /// 2 adımlı doğrulama açıksa: { success: true, requiresTwoFactor: true, twoFactorTicket } → kod ekranına geçilir.
-    /// </summary>
+    // Normal giriş: { success, token, user }
+    // 2FA açıksa: { success, requiresTwoFactor: true, twoFactorTicket } ve arayüz kod ekranına geçiyor.
     public class AuthResponse
     {
         public bool Success { get; set; }
@@ -15,7 +12,7 @@ namespace PromptForge.Api.Dtos
         public string? TwoFactorTicket { get; set; }
     }
 
-    /// <summary>Dışarıya gösterilebilecek kullanıcı bilgisi (şifre hash'i ve 2FA anahtarı asla burada olmaz).</summary>
+    // Dışarıya giden kullanıcı modeli; hash ve 2FA secret burada yok.
     public class UserInfo
     {
         public Guid Id { get; set; }
@@ -28,7 +25,7 @@ namespace PromptForge.Api.Dtos
         public DateTime CreatedAt { get; set; }
     }
 
-    /// <summary>Kota dolduğunda dönen cevap: mesaj + güncel kullanım (arayüz geri sayımı buradan gösterir).</summary>
+    // Aylık kota dolunca 429 ile dönüyor. Code alanı, dakikalık istek sınırının 429'undan ayırt etmek için.
     public class QuotaExceededResponse
     {
         public bool Success { get; set; }
@@ -37,7 +34,6 @@ namespace PromptForge.Api.Dtos
         public UsageDto Usage { get; set; } = new();
     }
 
-    /// <summary>Basit başarı/hata cevabı: { success, message }</summary>
     public class MessageResponse
     {
         public bool Success { get; set; }

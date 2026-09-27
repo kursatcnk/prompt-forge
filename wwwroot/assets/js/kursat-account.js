@@ -1,13 +1,12 @@
 (() => {
   "use strict";
-  // Hesap, güvenlik, plan/kota kartları; plan penceresi; 2 adımlı doğrulama kurulumu ve üst bardaki AI durum göstergesi.
+  // Ayarlar sayfasındaki hesap kartları, plan penceresi, 2FA kurulumu ve üst bardaki AI göstergesi.
   const PF = window.PF;
   if (!PF) return;
 
   const account = () => PF.state.account;
   const esc = PF.escape;
 
-  // Form altındaki mesaj satırı (hata kırmızı, başarı yeşil).
   function setMessage(el, text, type) {
     if (!el) return;
     el.textContent = text || "";
@@ -22,7 +21,7 @@
     finally { button.disabled = false; button.textContent = label; }
   }
 
-  // ===== Hesap kartı: ad değiştirme ve şifre değiştirme =====
+  // Hesap kartı
   function renderAccountCard() {
     const host = document.querySelector("#kursat-account-card");
     const me = account();
@@ -73,7 +72,7 @@
     });
   }
 
-  // ===== Güvenlik kartı: e-posta doğrulama ve 2 adımlı doğrulama =====
+  // Güvenlik kartı
   function renderSecurityCard() {
     const host = document.querySelector("#kursat-security-card");
     const me = account();
@@ -85,7 +84,7 @@
     host.querySelector("#kursat-2fa-start")?.addEventListener("click", event => withBusy(event.currentTarget, startTwoFactorSetup));
   }
 
-  // 2FA kurulumu: sunucudan QR al → kullanıcı uygulamaya okutur → ilk kodu girer → açılır.
+  // QR al → uygulamaya okut → ilk kodu gir. Kod doğrulanmadan 2FA açılmıyor.
   async function startTwoFactorSetup() {
     const { ok, data } = await PF.api.post("/api/account/two-factor/setup");
     if (!ok) { PF.toast("Kurulum başlatılamadı", data?.message || "Tekrar dene."); return; }
@@ -113,7 +112,7 @@
     });
   }
 
-  // ===== Plan kartı, plan penceresi ve kenar çubuğu =====
+  // Plan, kota ve kenar çubuğu
   function usageBar(usage) {
     const percent = usage.limit ? Math.min(100, Math.round(usage.used / usage.limit * 100)) : 0;
     const state = percent >= 100 ? "is-full" : percent >= 80 ? "is-warning" : "";
@@ -161,7 +160,7 @@
     const copy = document.querySelector("#kursat-sidebar-plan-copy");
     if (title) title.textContent = me.usage.plan === "pro" ? "PromptForge Pro" : `${planName(me.usage.plan)} plan`;
     if (copy) copy.textContent = `Bu ay ${me.usage.used}/${me.usage.limit} hak kullanıldı.`;
-    // Kota çubuğu: %80'den sonra uyarı rengi, dolunca kırmızı.
+    // %80'den sonra sarı, dolunca kırmızı.
     const bar = document.querySelector("#kursat-sidebar-plan-bar");
     if (bar) {
       const pct = Math.min(100, Math.round(me.usage.used / Math.max(1, me.usage.limit) * 100));
@@ -171,7 +170,7 @@
     }
   }
 
-  // Üst bardaki gösterge: AI bağlıysa yeşil nokta + sağlayıcı adı, değilse sarı nokta + "Yerel mod".
+  // AI bağlıysa yeşil nokta + sağlayıcı, değilse sarı nokta + Yerel mod.
   function renderEngineStatus() {
     const pill = document.querySelector("#kursat-engine-status");
     const ai = account()?.ai;
@@ -181,7 +180,7 @@
     pill.title = ai.enabled ? `Optimizasyonlar ${ai.provider} (${ai.model}) ile yapılıyor.` : "AI anahtarı tanımlı değil; yerel kural motoru kullanılıyor.";
   }
 
-  // ===== Ortak pencere (modal) =====
+  // Ortak modal
   function openPanel(title, html) {
     document.querySelector("#kursat-panel-title").textContent = title;
     document.querySelector("#kursat-panel-body").innerHTML = html;
@@ -192,7 +191,7 @@
     PF.closeBackdrop(document.querySelector("#kursat-panel-backdrop"));
   }
 
-  // Kota dolduysa Optimize Et butonunu kilitle ve yenilenme zamanını editörün altında göster.
+  // Kota dolunca Optimize Et kilitleniyor, yenilenme tarihi editörün altında yazıyor.
   function applyQuota() {
     const usage = account()?.usage;
     if (!usage) return;
@@ -218,7 +217,6 @@
 
   document.querySelector("#kursat-open-plans")?.addEventListener("click", openPlans);
   document.addEventListener("kursat:account-loaded", renderAll);
-  // Her optimizasyondan sonra kota bilgisi güncellenir.
   document.addEventListener("kursat:usage-changed", event => {
     if (!account() || !event.detail) return;
     account().usage = event.detail;

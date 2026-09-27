@@ -5,17 +5,7 @@ using PromptForge.Api.Services;
 
 namespace PromptForge.Api.Controllers
 {
-    /// <summary>
-    /// Kimlik doğrulama (giriş yapmadan erişilebilen) endpoint'leri.
-    ///
-    /// POST /api/auth/register              → Kayıt (otomatik giriş + doğrulama kodu e-postası)
-    /// POST /api/auth/login                 → Giriş (2FA açıksa bilet döner)
-    /// POST /api/auth/login/two-factor      → 2 adımlı girişin ikinci adımı
-    /// POST /api/auth/forgot-password       → Şifre sıfırlama bağlantısı gönder
-    /// POST /api/auth/reset-password        → Bağlantıdaki anahtarla yeni şifre belirle
-    ///
-    /// [EnableRateLimiting("auth")]: aynı IP'den dakikada sınırlı deneme yapılabilir (şifre tahmin saldırısına karşı).
-    /// </summary>
+    // Giriş gerektirmeyen uçlar. Hepsi IP başına dakikada 10 istekle sınırlı (Program.cs > "auth").
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("auth")]
@@ -65,9 +55,8 @@ namespace PromptForge.Api.Controllers
         [HttpPost("forgot-password")]
         public async Task<ActionResult<MessageResponse>> ForgotPassword([FromBody] ForgotPasswordRequest request)
         {
-            // Bağlantı bu sitenin adresiyle oluşturulur (örn. http://localhost:5299/auth/recover-password.html?...).
             await _userService.RequestPasswordResetAsync(request.Email ?? "", $"{Request.Scheme}://{Request.Host}");
-            // Email kayıtlı olsun olmasın aynı cevap: dışarıdan hangi email'lerin kayıtlı olduğu öğrenilemez.
+            // Mail kayıtlı olsa da olmasa da aynı cevap; yoksa kimin üye olduğu buradan öğrenilebilir.
             return Ok(MessageResponse.Ok("Bu e-posta kayıtlıysa şifre sıfırlama bağlantısı gönderildi."));
         }
 
@@ -85,6 +74,7 @@ namespace PromptForge.Api.Controllers
             Success = true,
             Token = result.Token,
             Message = message,
+            // 2FA adımında henüz tam giriş yok, kullanıcı bilgisini göndermiyorum.
             User = result.RequiresTwoFactor ? null : UserService.ToUserInfo(result.User!),
             RequiresTwoFactor = result.RequiresTwoFactor,
             TwoFactorTicket = result.TwoFactorTicket

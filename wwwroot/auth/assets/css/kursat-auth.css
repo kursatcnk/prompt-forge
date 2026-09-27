@@ -1,7 +1,4 @@
-/* ==========================================================================
-   PromptForge — giriş sayfaları (giriş, kayıt, şifre, doğrulama)
-   Uygulamayla aynı tasarım değişkenleri: soldaki form, sağda sade ürün önizlemesi.
-   ========================================================================== */
+/* Giriş, kayıt, şifre ve doğrulama sayfaları. Solda form, sağda ürün önizlemesi; renkler uygulamayla aynı. */
 :root {
   --bg: #f7f7f8;
   --surface: #ffffff;
@@ -101,7 +98,7 @@ svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width:
 }
 .kursat-otp input:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
 
-/* Sağ panel: sade ürün önizlemesi */
+/* Sağdaki önizleme paneli */
 .kursat-auth-showcase { display: grid; place-items: center; padding: 48px; background: var(--surface-2); border-left: 1px solid var(--border); }
 .kursat-showcase-inner { width: min(460px, 100%); display: grid; gap: 14px; }
 .kursat-showcase-kicker { font-size: 13px; color: var(--muted); }

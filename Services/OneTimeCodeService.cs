@@ -6,32 +6,30 @@ using PromptForge.Api.Models;
 
 namespace PromptForge.Api.Services
 {
-    /// <summary>
-    /// Tek kullanımlık kod üretir ve doğrular (e-posta doğrulama, şifre sıfırlama, 2 adımlı giriş bileti).
-    /// Kodun kendisi saklanmaz, SHA-256 özeti saklanır. Aynı amaçla yeni kod üretilince eskisi geçersiz olur.
-    /// </summary>
+    // Mail doğrulama kodu, şifre sıfırlama linki ve 2FA giriş bileti için tek kullanımlık kodlar.
+    // Kodun kendisini değil SHA-256'sını saklıyorum.
     public class OneTimeCodeService
     {
         public const string EmailVerify = "email-verify";
         public const string PasswordReset = "password-reset";
         public const string TwoFactor = "two-factor";
 
+        // 6 haneli kodda 1 milyon ihtimal var; 5 denemeden sonra kod ölüyor, tahminle bulunamıyor.
         private const int MaxFailedAttempts = 5;
         private readonly PromptForgeDbContext _context;
 
         public OneTimeCodeService(PromptForgeDbContext context) => _context = context;
 
-        /// <summary>6 haneli sayısal kod (e-postaya yazılır).</summary>
         public Task<string> CreateNumericCodeAsync(Guid userId, string purpose, TimeSpan lifetime) =>
             CreateAsync(userId, purpose, lifetime, RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6"));
 
-        /// <summary>Tahmin edilemeyen uzun anahtar (bağlantılarda ve biletlerde kullanılır).</summary>
+        // Linklerde ve biletlerde kullanılan uzun, tahmin edilemez anahtar.
         public Task<string> CreateSecretTokenAsync(Guid userId, string purpose, TimeSpan lifetime) =>
             CreateAsync(userId, purpose, lifetime, Convert.ToHexString(RandomNumberGenerator.GetBytes(32)).ToLowerInvariant());
 
         private async Task<string> CreateAsync(Guid userId, string purpose, TimeSpan lifetime, string code)
         {
-            // Aynı amaçlı eski kodları iptal et: kullanıcı elinde her zaman sadece en son kod geçerli olsun.
+            // Aynı amaçla yeni kod istenince eskiler iptal; elde her zaman sadece son kod geçerli.
             await _context.UserTokens.Where(t => t.UserId == userId && t.Purpose == purpose && t.UsedAt == null).ExecuteDeleteAsync();
 
             _context.UserTokens.Add(new UserToken
@@ -47,10 +45,7 @@ namespace PromptForge.Api.Services
             return code;
         }
 
-        /// <summary>
-        /// Kodu doğrular ve başarılıysa "kullanıldı" olarak işaretler (tekrar kullanılamaz).
-        /// 5 yanlış denemeden sonra kod iptal olur; böylece 6 haneli kod deneme-yanılmayla bulunamaz.
-        /// </summary>
+        // Doğruysa kodu "kullanıldı" diye işaretliyor, ikinci kez geçmiyor. Yanlışsa deneme sayacı artıyor.
         public async Task<bool> ConsumeAsync(Guid userId, string purpose, string? code)
         {
             var token = await _context.UserTokens
@@ -61,7 +56,7 @@ namespace PromptForge.Api.Services
             if (token == null || token.ExpiresAt < DateTime.UtcNow || token.FailedAttempts >= MaxFailedAttempts || string.IsNullOrWhiteSpace(code))
                 return false;
 
-            // Sabit zamanlı karşılaştırma: cevap süresinden kodun ne kadarının doğru olduğu anlaşılamaz.
+            // FixedTimeEquals: karşılaştırma süresi kodun ne kadarının tuttuğunu ele vermesin.
             var matches = CryptographicOperations.FixedTimeEquals(
                 Encoding.UTF8.GetBytes(token.TokenHash), Encoding.UTF8.GetBytes(Hash(code.Trim())));
 

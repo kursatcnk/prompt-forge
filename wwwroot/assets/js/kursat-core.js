@@ -1,7 +1,7 @@
 (() => {
   "use strict";
 
-  // Ortak state'i burada tutuyorum; özellik dosyalarının birbirinden kopmamasını istiyorum.
+  // Ortak state burada; diğer dosyalar PF.state üzerinden okuyup yazıyor.
   const kursatState = {
     model: "gpt",
     goal: "balanced",
@@ -51,11 +51,11 @@
   ];
 
   const session = window.PromptForgeSession;
-  // Sunucuya kaydedilen tercih alanları (SettingsDto ile aynı adlar).
+  // SettingsDto ile birebir aynı adlar.
   const kursatSettingKeys = ["model", "goal", "theme", "density", "motion", "useCase", "responseFormat", "responseLanguage", "askClarifying", "exposeAssumptions"];
   let kursatSaveTimer = 0;
 
-  // Açılışta son kayıtlı görünümü yerelden al; hesaptaki gerçek ayarlar kursatBootstrap ile gelir.
+  // İlk boyama için yereldeki görünüm; asıl ayarlar bootstrap'te sunucudan geliyor.
   function kursatLoadStorage() {
     const appearance = session?.readAppearance();
     if (!appearance) return;
@@ -64,7 +64,7 @@
     if (["on", "off"].includes(appearance.motion)) kursatState.motion = appearance.motion;
   }
 
-  // Her değişiklikte hemen istek atmak yerine 600 ms bekleyip tek istekte kaydediyoruz (art arda tıklamalarda gereksiz trafik olmasın).
+  // 600 ms debounce: art arda tıklamalarda her seferinde istek gitmesin.
   function kursatSaveStorage() {
     session?.saveAppearance({ theme: kursatState.theme, density: kursatState.density, motion: kursatState.motion });
     window.clearTimeout(kursatSaveTimer);
@@ -75,7 +75,7 @@
     }, 600);
   }
 
-  // Açılışta hesap, geçmiş ve favorileri paralel olarak yükle.
+  // Üçü birbirini beklemesin.
   async function kursatBootstrap() {
     const [me, history, favorites] = await Promise.all([
       session.api.get("/api/account/me"),
@@ -100,7 +100,7 @@
     document.dispatchEvent(new CustomEvent("kursat:data-changed"));
   }
 
-  // Üst bardaki "Hesabım" butonunda adı ve baş harfleri göster.
+  // Üst bardaki avatar ve ad.
   function kursatRenderUser(user) {
     if (!user?.displayName) return;
     const userButton = document.querySelector(".kursat-user-button");
@@ -112,7 +112,7 @@
     userButton?.setAttribute("title", user.email || user.displayName);
     session?.updateUser({ id: user.id, email: user.email, displayName: user.displayName });
 
-    // Optimize Et başlığında saate göre kişisel selamlama.
+    // Optimize Et başlığında saate göre selamlama.
     const hour = new Date().getHours();
     const greeting = hour < 5 ? "İyi geceler" : hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
     const title = document.querySelector("#kursat-forge-title");
@@ -121,7 +121,7 @@
     if (eyebrow) eyebrow.textContent = "Optimize Et";
   }
 
-  // Tema ve yoğunluğu tek noktadan uyguluyorum; farklı ekranların kendi renk sistemini üretmesini istemiyorum.
+  // Tema/yoğunluk/hareket sadece burada uygulanıyor, CSS geri kalanını data-* attribute'larından okuyor.
   function kursatResolveTheme() {
     if (kursatState.theme === "dark") return "dark";
     if (kursatState.theme === "light") return "light";
@@ -166,7 +166,7 @@
     return new Intl.DateTimeFormat("tr-TR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(date);
   }
 
-  // Yeni view açıldığında yalnızca ana blokları stagger ediyorum; her küçük elemana animasyon vermiyorum.
+  // Sadece ana blokları sırayla getiriyorum, her küçük elemana animasyon koymak göz yoruyor.
   function kursatAnimateView(target) {
     if (!target || kursatState.motion === "off") return;
     target.classList.remove("is-entering");
@@ -364,13 +364,12 @@
       kursatCloseConfirm();
       if (typeof action === "function") setTimeout(action, kursatState.motion === "off" ? 0 : 150);
     });
-    // Çıkış: kayıtlı token'ı sil, "çıkış yaptın" ekranına git.
     document.querySelector("#kursat-signout")?.addEventListener("click", () => {
       window.PromptForgeSession?.clearSession();
       window.location.href = "auth/log-out.html";
     });
 
-    // Sunucu cevabını beklemeden, girişte saklanan adla hemen göster.
+    // /me gelene kadar girişte saklanan adı göster, boş avatar görünmesin.
     kursatRenderUser(session?.getUser());
 
     window.addEventListener("keydown", event => {
@@ -423,6 +422,6 @@
     api: session.api
   };
 
-  // Diğer dosyalar (forge, library, account) PF'ye erişebildikten sonra sunucudan veriyi yükle.
+  // Diğer script'ler PF'yi tanımladıktan sonra yükle, yoksa event'leri kaçırıyorlar.
   document.addEventListener("DOMContentLoaded", kursatBootstrap);
 })();
