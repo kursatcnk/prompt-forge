@@ -196,37 +196,62 @@
     return { score, issues, requirements, variables, unresolved, tokens, checks };
   }
 
+  // Senaryoya göre "iyi sonuç" ölçütleri; sadece "En iyi sonuç" hedefinde prompta eklenir.
+  const qualityCriteria = {
+    general: ["Sonuç ek düzenleme gerektirmeden doğrudan kullanılabilir olmalı.", "Tüm zorunlu kurallar eksiksiz karşılanmalı."],
+    coding: ["Önerilen değişiklikler mevcut davranışı bozmamalı.", "Her değişiklik için hangi dosyanın neden değiştiği ve nasıl doğrulanacağı belirtilmeli."],
+    research: ["Her önemli iddia bir kanıta veya kaynağa dayanmalı.", "Belirsiz ve çelişkili bulgular ayrıca belirtilmeli."],
+    content: ["Ton hedef kitleye uygun ve baştan sona tutarlı olmalı.", "Metin net bir harekete geçirici mesajla bitmeli."],
+    data: ["Alan adları ve türleri tutarlı olmalı.", "Eksik veya hatalı değerlerin nasıl ele alınacağı belirtilmeli."]
+  };
+
+  // Yerel kural motoru (AI yokken yedek). Üç hedef bilerek farklı şekil üretir:
+  // lean = başlıksız en kısa hâl, balanced = düzenli ama sade, quality = bağlam + ölçütlerle genişletilmiş.
   function buildOptimizedPrompt(text, model, goal, analysis) {
-    const profile = modelProfiles[model] || modelProfiles.universal;
-    const useCase = useCaseProfiles[PF.state.useCase] || useCaseProfiles.general;
+    const useCaseKey = useCaseProfiles[PF.state.useCase] ? PF.state.useCase : "general";
     const requirements = analysis.requirements;
     const trimmed = String(text || "").replace(/\s+/g, " ").trim();
     const objective = trimmed.split(/(?<=[.!?])\s+/)[0] || trimmed;
     const requirementSet = new Set(requirements.map(item => item.replace(/\s+/g, " ").trim()));
     const rest = trimmed.slice(objective.length).trim().split(/(?<=[.!?])\s+/).filter(sentence => !requirementSet.has(sentence.trim())).join(" ");
-    const modeLine = goal === "quality"
-      ? "Öncelik: İlk yanıtta eksiksiz ve uygulanabilir sonuç üret."
-      : goal === "lean"
-        ? "Öncelik: Gereksiz açıklama ve tekrar üretmeden, yalnızca gerekli çıktıyı ver."
-        : "Öncelik: Kaliteyi korurken gereksiz bağlamı ve tekrarları azalt.";
 
-    const policies = [
-      PF.state.askClarifying ? "Görevi doğru tamamlamak için kritik bilgi eksikse üretime başlamadan önce en fazla 3 kısa netleştirme sorusu sor." : "Makul varsayımlarla ilerle; netleştirme sorusu sorma.",
-      PF.state.exposeAssumptions ? "Sonucu etkileyen varsayımları kısa ve açık biçimde belirt." : "Gereksiz varsayım açıklaması ekleme."
-    ];
-
-    const parts = [
-      `GÖREV\n${objective}`,
-      rest ? `BAĞLAM\n${rest}` : "",
-      requirements.length ? `ZORUNLU KURALLAR\n${requirements.map(item => `- ${item}`).join("\n")}` : "",
-      analysis.variables.length ? `DEĞİŞKENLER\n${analysis.variables.map(item => `- {{${item}}}: Çalıştırma anında sağlanacak değer.`).join("\n")}` : "",
-      `ÇALIŞMA BİÇİMİ\n${useCase.instruction}\n${modeLine}\n${policies.map(item => `- ${item}`).join("\n")}`,
-      `MODEL UYUMU\nHedef: ${profile.label} (${profile.provider}). ${profile.hint}`,
-      `ÇIKTI SÖZLEŞMESİ\n- ${languageProfiles[PF.state.responseLanguage] || languageProfiles.prompt}\n- ${formatProfiles[PF.state.responseFormat] || formatProfiles.auto}\n- Görevi doğrudan tamamla; gereksiz giriş, tekrar veya talimat özeti ekleme.`,
-      `SON KONTROL\nYanıtı teslim etmeden önce zorunlu kuralların tamamını karşıladığını ve biçimin geçerli olduğunu sessizce doğrula.`
+    // Sadece varsayılandan farklı tercihler metne eklenir; "promptun dilinde yanıt ver" gibi zaten doğal olan satırlar eklenmez.
+    const outputLines = [
+      PF.state.responseFormat !== "auto" ? formatProfiles[PF.state.responseFormat] : "",
+      PF.state.responseLanguage !== "prompt" ? languageProfiles[PF.state.responseLanguage] : ""
+    ].filter(Boolean);
+    const policyLines = [
+      PF.state.askClarifying ? "Kritik bilgi eksikse başlamadan önce en fazla 3 kısa soru sor." : "",
+      PF.state.exposeAssumptions ? "Sonucu etkileyen varsayımları kısaca belirt." : ""
     ].filter(Boolean);
 
-    return parts.join("\n\n");
+    if (goal === "lean") {
+      return [
+        [objective, rest].filter(Boolean).join(" "),
+        requirements.length ? `Kurallar: ${requirements.join(" ")}` : "",
+        [...outputLines, ...policyLines].join(" ")
+      ].filter(Boolean).join("\n");
+    }
+
+    if (goal === "quality") {
+      return [
+        `GÖREV\n${objective}`,
+        rest ? `BAĞLAM\n${rest}` : "",
+        requirements.length ? `ZORUNLU KURALLAR\n${requirements.map(item => `- ${item}`).join("\n")}` : "",
+        analysis.variables.length ? `DEĞİŞKENLER\n${analysis.variables.map(item => `- {{${item}}}: Çalıştırma anında sağlanacak değer.`).join("\n")}` : "",
+        `YAKLAŞIM\n${[useCaseProfiles[useCaseKey].instruction, ...policyLines].map(item => `- ${item}`).join("\n")}`,
+        `ÇIKTI\n${(outputLines.length ? outputLines : [formatProfiles.auto]).map(item => `- ${item}`).join("\n")}`,
+        `KALİTE ÖLÇÜTLERİ\n${qualityCriteria[useCaseKey].map(item => `- ${item}`).join("\n")}`,
+        "Teslim etmeden önce tüm kuralları ve ölçütleri karşıladığını kontrol et."
+      ].filter(Boolean).join("\n\n");
+    }
+
+    return [
+      `GÖREV\n${objective}`,
+      rest ? `BAĞLAM\n${rest}` : "",
+      requirements.length ? `KURALLAR\n${requirements.map(item => `- ${item}`).join("\n")}` : "",
+      outputLines.length || policyLines.length ? `ÇIKTI\n${[...outputLines, ...policyLines].map(item => `- ${item}`).join("\n")}` : ""
+    ].filter(Boolean).join("\n\n");
   }
 
   function renderPreflight(analysis) {

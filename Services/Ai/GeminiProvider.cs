@@ -21,7 +21,7 @@ namespace PromptForge.Api.Services.Ai
 
         public string Key => "gemini";
         public string DisplayName => "Gemini";
-        public string Model => string.IsNullOrWhiteSpace(_options.Model) ? "gemini-2.5-flash" : _options.Model;
+        public string Model => string.IsNullOrWhiteSpace(_options.Model) ? "gemini-3.8-flash" : _options.Model;
         public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.ApiKey);
 
         public async Task<AiCompletion> CompleteAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken)
@@ -60,6 +60,8 @@ namespace PromptForge.Api.Services.Ai
                     throw new AiProviderException(response.StatusCode switch
                     {
                         HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden => "Gemini API anahtarı geçersiz.",
+                        // Google eski modelleri zamanla kapatır; bu durumda appsettings.json → AI:Gemini:Model güncellenmeli.
+                        HttpStatusCode.NotFound => $"Gemini modeli bulunamadı ({Model}). appsettings.json içindeki AI:Gemini:Model adını kontrol et.",
                         HttpStatusCode.TooManyRequests => "Gemini şu an çok yoğun veya kota doldu. Birazdan tekrar dene.",
                         _ => $"Gemini isteği tamamlanamadı ({(int)response.StatusCode})."
                     });

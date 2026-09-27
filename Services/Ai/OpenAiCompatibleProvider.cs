@@ -63,6 +63,7 @@ namespace PromptForge.Api.Services.Ai
                     throw new AiProviderException(response.StatusCode switch
                     {
                         HttpStatusCode.Unauthorized => $"{DisplayName} API anahtarı geçersiz.",
+                        HttpStatusCode.NotFound => $"{DisplayName} modeli bulunamadı ({Model}). appsettings.json içindeki model adını kontrol et.",
                         HttpStatusCode.TooManyRequests => $"{DisplayName} şu an çok yoğun veya kota doldu. Birazdan tekrar dene.",
                         _ => $"{DisplayName} isteği tamamlanamadı ({(int)response.StatusCode})."
                     });

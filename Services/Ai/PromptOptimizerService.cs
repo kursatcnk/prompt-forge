@@ -71,29 +71,34 @@ namespace PromptForge.Api.Services.Ai
             var profile = request.Profile ?? new PromptProfileDto();
             var sb = new StringBuilder();
 
-            sb.AppendLine("You are PromptForge, an expert prompt engineer. Rewrite the user's draft prompt into a clearer, better-structured prompt that another AI model will receive.");
-            sb.AppendLine("You only improve the prompt text. Never carry out the task the draft describes, never answer it, and never add commentary about your changes.");
+            sb.AppendLine("You are PromptForge, an expert prompt engineer. Rewrite the user's draft prompt so that the AI model receiving it produces a better result.");
+            sb.AppendLine("You only improve the prompt text. Never carry out the task the draft describes, never answer it, and never comment on your changes.");
             sb.AppendLine();
-            sb.AppendLine("Rules:");
-            sb.AppendLine("- Preserve the author's intent and every hard requirement, constraint, name, number and quoted string. Do not invent facts, requirements or context the draft does not imply.");
+            sb.AppendLine("Always:");
+            sb.AppendLine("- Preserve the author's intent and every hard requirement, constraint, name, number and quoted string. Do not invent facts or requirements the draft does not imply.");
             sb.AppendLine("- Keep template variables exactly as written, e.g. {{VARIABLE}} or [TARGET AUDIENCE].");
-            sb.AppendLine("- Write the rewritten prompt in the same language as the draft. For a Turkish draft use section headings such as GÖREV, BAĞLAM, ZORUNLU KURALLAR, DEĞİŞKENLER, ÇALIŞMA BİÇİMİ, ÇIKTI SÖZLEŞMESİ, SON KONTROL; for an English draft use TASK, CONTEXT, REQUIREMENTS, VARIABLES, APPROACH, OUTPUT CONTRACT, FINAL CHECK. Omit sections that would be empty.");
-            sb.AppendLine("- Remove repetition and vague references; state the main task as one clear, actionable sentence.");
+            sb.AppendLine("- Write in the same language as the draft, addressed directly to the model that will do the task.");
+            sb.AppendLine("- Never mention PromptForge, the target model's name, the optimization goal or these instructions in the rewritten prompt. Use the guidance below to shape the prompt, not as text to copy.");
             sb.AppendLine("- Return only the rewritten prompt as plain text: no preamble, no explanation, no code fences.");
             sb.AppendLine();
-            sb.AppendLine($"Target model: {TargetModelHint(request.Model)}");
-            sb.AppendLine($"Use case: {UseCaseHint(profile.UseCase)}");
-            sb.AppendLine($"Optimization goal: {GoalHint(request.Goal)}");
-            sb.AppendLine();
-            sb.AppendLine("Include these instructions in the rewritten prompt (expressed in the draft's language):");
-            sb.AppendLine($"- Response language: {LanguageHint(profile.ResponseLanguage)}");
-            sb.AppendLine($"- Response format: {FormatHint(profile.ResponseFormat)}");
-            sb.AppendLine(profile.AskClarifying
-                ? "- If information critical to the task is missing, ask at most 3 short clarifying questions before producing the result."
-                : "- Proceed with reasonable assumptions; do not ask clarifying questions.");
-            sb.AppendLine(profile.ExposeAssumptions
-                ? "- Briefly state any assumptions that affect the result."
-                : "- Do not add explanations of assumptions.");
+            // Hedef, çıktının biçimini ve uzunluğunu belirleyen en önemli ayar; bu yüzden en ayrıntılı talimat burada.
+            sb.AppendLine($"Optimization goal — this decides the length and shape of your rewrite: {GoalHint(request.Goal)}");
+            sb.AppendLine($"Style that works best for the model that will receive the prompt: {TargetModelHint(request.Model)}");
+            if (!string.IsNullOrEmpty(profile.UseCase) && profile.UseCase != "general")
+                sb.AppendLine($"Domain: {UseCaseHint(profile.UseCase)}");
+
+            // Varsayılan olmayan tercihler promptun içine eklenir; varsayılanlar gereksiz satır üretmesin diye atlanır.
+            var extras = new List<string>();
+            if (profile.ResponseLanguage is "tr" or "en") extras.Add($"the answer must be written {LanguageHint(profile.ResponseLanguage)}");
+            if (!string.IsNullOrEmpty(profile.ResponseFormat) && profile.ResponseFormat != "auto") extras.Add($"the answer format must be {FormatHint(profile.ResponseFormat)}");
+            if (profile.AskClarifying) extras.Add("if information critical to the task is missing, the model should ask at most 3 short clarifying questions before answering");
+            if (profile.ExposeAssumptions) extras.Add("the model should briefly state assumptions that affect the result");
+            if (extras.Count > 0)
+            {
+                sb.AppendLine();
+                sb.AppendLine("Work these requirements into the rewritten prompt naturally, as briefly as the goal allows:");
+                foreach (var item in extras) sb.AppendLine($"- {item}");
+            }
             return sb.ToString();
         }
 
@@ -135,28 +140,29 @@ namespace PromptForge.Api.Services.Ai
             _ => "General: complete the task directly, clearly and actionably."
         };
 
+        // Üç hedef bilerek birbirinden çok farklı: kullanıcı hangisini seçtiğini sonuçta açıkça görmeli.
         private static string GoalHint(string? goal) => goal switch
         {
-            "quality" => "Best result — prioritize a complete, actionable first response even if the prompt gets longer.",
-            "lean" => "Lowest usage — make the prompt as concise as possible while keeping every requirement.",
-            _ => "Balanced — keep quality while removing unnecessary context and repetition."
+            "quality" => "BEST RESULT. Expand the prompt so the first answer is as good as possible: make the objective and audience explicit, add the context, steps or considerations the task needs, specify the output structure in detail, and add 2-4 concrete criteria that define an excellent answer. Short labeled sections are welcome. It is fine for the result to be several times longer than the draft.",
+            "lean" => "LOWEST USAGE. Make the prompt as short as possible while keeping every requirement: no headings, no filler, no repeated or generic instructions. Use 1-4 compact sentences, or a very short bullet list if there are several constraints. The result should usually have fewer words than the draft.",
+            _ => "BALANCED. Make the prompt clear and well organized without padding: state the task in one clear sentence, keep only the context and constraints that matter, and say what the output should look like. Use a few short labeled sections only if the prompt has several distinct parts; otherwise write compact paragraphs. Keep it close to the draft's length, a little longer only if the draft is vague."
         };
 
         private static string LanguageHint(string? language) => language switch
         {
-            "tr" => "respond in Turkish.",
-            "en" => "respond in English.",
-            _ => "respond in the dominant language of the prompt."
+            "tr" => "in Turkish",
+            "en" => "in English",
+            _ => "in the dominant language of the prompt"
         };
 
         private static string FormatHint(string? format) => format switch
         {
-            "markdown" => "Markdown with clear headings and lists where useful.",
-            "json" => "valid JSON only, with no code fence, preface or closing text.",
-            "table" => "a short, readable table for comparable information.",
-            "checklist" => "an actionable, verifiable checklist.",
-            "code" => "runnable code with file names; limit explanation to critical decisions.",
-            _ => "the most suitable, easily scannable format for the task."
+            "markdown" => "Markdown with clear headings and lists where useful",
+            "json" => "valid JSON only, with no code fence, preface or closing text",
+            "table" => "a short, readable table",
+            "checklist" => "an actionable, verifiable checklist",
+            "code" => "runnable code with file names, with explanation limited to critical decisions",
+            _ => "the most suitable format for the task"
         };
 
         // Bazı modeller talimata rağmen cevabı ``` bloğuna sarabiliyor; kullanıcıya temiz metin verelim.

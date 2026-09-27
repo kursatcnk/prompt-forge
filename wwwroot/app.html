@@ -7,13 +7,13 @@
   <title>PromptForge</title>
   <link rel="icon" href="assets/img/kursat-promptforge-mark.svg" type="image/svg+xml">
   <!-- Giriş kontrolü: token yoksa sayfa çizilmeden giriş ekranına yönlendir. -->
-  <script src="assets/js/kursat-session.js"></script>
+  <script src="assets/js/kursat-session.js?v=3"></script>
   <script>
     PromptForgeSession.requireAuth("auth/sign-in.html");
     // İlk boyamada son kayıtlı görünümü uygula; hesaptaki ayarlar yüklenince kursat-core.js günceller.
     (()=>{const a=PromptForgeSession.readAppearance()||{};const pref=a.theme||"light";const dark=pref==="dark"||(pref==="system"&&matchMedia?.("(prefers-color-scheme: dark)")?.matches);const d=document.documentElement.dataset;d.kursatTheme=dark?"dark":"light";d.kursatThemePref=pref;d.kursatDensity=a.density||"comfortable";d.kursatMotion=a.motion||"on";})();
   </script>
-  <link rel="stylesheet" href="assets/css/kursat-promptforge.css">
+  <link rel="stylesheet" href="assets/css/kursat-promptforge.css?v=3">
 </head>
 <body>
 <div class="kursat-app">
@@ -289,10 +289,10 @@
 
 <div class="kursat-toast-stack" id="kursat-toast-stack" aria-live="polite"></div>
 <input class="kursat-hidden" id="kursat-file-input" type="file" accept=".txt,.md,.json,text/plain,text/markdown,application/json">
-<script src="assets/js/kursat-core.js"></script>
-<script src="assets/js/kursat-forge.js"></script>
-<script src="assets/js/kursat-builders.js"></script>
-<script src="assets/js/kursat-library.js"></script>
-<script src="assets/js/kursat-account.js"></script>
+<script src="assets/js/kursat-core.js?v=3"></script>
+<script src="assets/js/kursat-forge.js?v=3"></script>
+<script src="assets/js/kursat-builders.js?v=3"></script>
+<script src="assets/js/kursat-library.js?v=3"></script>
+<script src="assets/js/kursat-account.js?v=3"></script>
 </body>
 </html>
