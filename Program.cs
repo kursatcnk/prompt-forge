@@ -154,7 +154,12 @@ app.UseHttpsRedirection();
 
 /// wwwroot klasöründeki arayüzü (HTML, CSS, JS) sun. Site ve API aynı adreste çalıştığı için CORS gerekmez.
 app.UseDefaultFiles();
-app.UseStaticFiles();
+// no-cache: tarayıcı dosyayı kullanmadan önce sunucuya "değişti mi?" diye sorar. Değişmediyse cevap 304 (boş) olur;
+// böylece arayüz güncellenince kullanıcılar eski JS/CSS ile çalışmaya devam etmez.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = context => context.Context.Response.Headers.CacheControl = "no-cache"
+});
 
 app.UseRateLimiter();
 
