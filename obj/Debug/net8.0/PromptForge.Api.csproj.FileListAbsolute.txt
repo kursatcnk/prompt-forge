@@ -1,0 +1,9 @@
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.csproj.AssemblyReference.cache
+E:\Github\prompt-forge\obj\Debug\net8.0\rpswa.dswa.cache.json
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.GeneratedMSBuildEditorConfig.editorconfig
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.AssemblyInfoInputs.cache
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.AssemblyInfo.cs
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.csproj.CoreCompileInputs.cache
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.MvcApplicationPartsAssemblyInfo.cs
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.MvcApplicationPartsAssemblyInfo.cache
+E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.sourcelink.json
