@@ -44,7 +44,8 @@ namespace PromptForge.Api.Services
             using var client = new SmtpClient(smtp["Host"], int.TryParse(smtp["Port"], out var port) ? port : 587)
             {
                 EnableSsl = true,
-                Credentials = new NetworkCredential(smtp["Username"], smtp["Password"])
+                // Gmail uygulama şifresini "abcd efgh ijkl mnop" diye gruplu gösterir; boşluklar şifreye dahil değildir.
+                Credentials = new NetworkCredential(smtp["Username"], smtp["Password"]?.Replace(" ", ""))
             };
 
             using var mail = new MailMessage
