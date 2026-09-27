@@ -1,3 +1,4 @@
+using PromptForge.Api.Dtos;
 using PromptForge.Api.Models;
 
 namespace PromptForge.Api.Services
@@ -54,5 +55,11 @@ namespace PromptForge.Api.Services
         /// Controller'ların profil bilgisi lazım olduğunda kullanır.
         /// </summary>
         Task<dynamic?> GetUserByIdAsync(string userId);
+
+        /// <summary>
+        /// Tüm kullanıcıları, en yeni kayıt en üstte olacak şekilde listeler.
+        /// Şifre hash'i gibi gizli alanlar dönmez; sadece UserInfo alanları döner.
+        /// </summary>
+        Task<List<UserInfo>> GetAllUsersAsync();
     }
 }

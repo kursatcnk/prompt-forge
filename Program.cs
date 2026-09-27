@@ -1,3 +1,5 @@
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -5,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using PromptForge.Api.Data;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using PromptForge.Api.Services;
 
 /// ====================================================================
@@ -31,7 +35,52 @@ builder.Services.AddControllers();
 /// Swagger/OpenAPI desteği eklenir.
 /// /swagger adresinde API dokümantasyonu gösterilir.
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    // Swagger sayfasına "Authorize" butonu ekler: token'ı bir kez yapıştırırsın,
+    // kilitli endpoint'leri tarayıcıdan test ederken otomatik gönderilir.
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Login'den aldığın token'ı yapıştır (başına 'Bearer' yazma)."
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme { Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" } },
+            Array.Empty<string>()
+        }
+    });
+});
+
+/// ===== KİMLİK DOĞRULAMA (JWT) =====
+
+/// Gelen isteklerdeki "Authorization: Bearer {token}" başlığını otomatik kontrol eder.
+/// Token'ı üretirken kullandığımız ayarların aynısıyla doğrular (UserService.GenerateJwtToken):
+/// - İmza bizim gizli anahtarımızla mı atılmış? (sahte token'ı engeller)
+/// - Issuer/Audience doğru mu? (başka bir uygulamanın token'ını engeller)
+/// - Süresi dolmuş mu?
+/// [Authorize] etiketi olan endpoint'ler geçerli token yoksa 401 döner.
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(
+                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"] ?? "")),
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
 
 /// ===== 2. VERİTABANI BAĞLANTISI =====
 
@@ -115,8 +164,10 @@ app.UseStaticFiles();
 /// Frontend'in API'ye erişebilmesini sağla.
 app.UseCors("AllowAll");
 
-/// Kimlik doğrulama middleware'i (JWT, cookies vb).
-/// Şu an aktif değil; daha sonra auth controller'ı yazılacak.
+/// Önce "sen kimsin?" (Authentication: token'ı oku ve doğrula),
+/// sonra "buna yetkin var mı?" (Authorization: [Authorize] kuralını uygula).
+/// Sıra önemli: kim olduğunu bilmeden yetkiyi kontrol edemeyiz.
+app.UseAuthentication();
 app.UseAuthorization();
 
 /// Controller'ları route'la.

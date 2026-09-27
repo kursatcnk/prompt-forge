@@ -68,11 +68,10 @@ namespace PromptForge.Api.Data
         public DbSet<UserSettings> UserSettings { get; set; }
 
         /// <summary>
-        /// Harici AI sağlayıcılarının API anahtarlarını temsil eder.
-        /// DbSet<ApiKey> → ApiKeys tablosu
-        /// Güvenlik önemli: anahtarlar şifreli tutulur.
+        /// Tek kullanımlık kodlar: e-posta doğrulama, şifre sıfırlama, 2 adımlı giriş bileti.
+        /// DbSet<UserToken> → UserTokens tablosu
         /// </summary>
-        public DbSet<ApiKey> ApiKeys { get; set; }
+        public DbSet<UserToken> UserTokens { get; set; }
 
         /// <summary>
         /// Kullanıcıların API kullanım ve maliyet kayıtlarını temsil eder.
@@ -103,6 +102,7 @@ namespace PromptForge.Api.Data
                 entity.HasIndex(u => u.Email).IsUnique();
                 entity.Property(u => u.PasswordHash).IsRequired();
                 entity.Property(u => u.DisplayName).HasMaxLength(255);
+                entity.Property(u => u.Plan).HasMaxLength(20).HasDefaultValue("free");
             });
 
             // ===== PromptOptimizations: kısa metin alanları =====
@@ -114,15 +114,22 @@ namespace PromptForge.Api.Data
                 entity.Property(p => p.UseCase).HasMaxLength(50);
                 entity.Property(p => p.OutputFormat).HasMaxLength(50);
                 entity.Property(p => p.OptimizationTarget).HasMaxLength(50);
+                entity.Property(p => p.ResponseLanguage).HasMaxLength(20);
+                entity.Property(p => p.Engine).HasMaxLength(100);
                 entity.HasIndex(p => p.CreatedAt);
             });
 
-            // ===== ApiKeys: her sağlayıcının tek bir anahtarı olur =====
-            modelBuilder.Entity<ApiKey>(entity =>
+            // ===== UserTokens: tek kullanımlık kodlar =====
+            // Kullanıcı silinince kodları da silinir. Kod aramaları (UserId + Purpose) üzerinden yapıldığı için index var.
+            modelBuilder.Entity<UserToken>(entity =>
             {
-                entity.Property(k => k.Provider).IsRequired().HasMaxLength(50);
-                entity.HasIndex(k => k.Provider).IsUnique();
-                entity.Property(k => k.EncryptedKey).IsRequired();
+                entity.Property(t => t.Purpose).IsRequired().HasMaxLength(30);
+                entity.Property(t => t.TokenHash).IsRequired().HasMaxLength(64);
+                entity.HasIndex(t => new { t.UserId, t.Purpose });
+                entity.HasOne(t => t.User)
+                    .WithMany()
+                    .HasForeignKey(t => t.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // ===== UsageTracking: para alanı hassasiyeti =====
@@ -141,6 +148,9 @@ namespace PromptForge.Api.Data
                 entity.Property(s => s.Theme).HasMaxLength(50);
                 entity.Property(s => s.Density).HasMaxLength(50);
                 entity.Property(s => s.Language).HasMaxLength(10);
+                entity.Property(s => s.UseCase).HasMaxLength(50);
+                entity.Property(s => s.ResponseFormat).HasMaxLength(50);
+                entity.Property(s => s.ResponseLanguage).HasMaxLength(20);
             });
 
             // ===== PromptOptimization → User (N:1) =====

@@ -48,6 +48,28 @@ namespace PromptForge.Api.Models
         /// </summary>
         public bool IsActive { get; set; }
 
+        /// <summary>
+        /// E-posta adresi, gönderilen 6 haneli kodla doğrulandı mı?
+        /// </summary>
+        public bool EmailConfirmed { get; set; }
+
+        /// <summary>
+        /// İki adımlı doğrulama (Google Authenticator vb.) açık mı?
+        /// Açıksa girişte şifreden sonra 6 haneli kod da istenir.
+        /// </summary>
+        public bool TwoFactorEnabled { get; set; }
+
+        /// <summary>
+        /// Authenticator uygulamasıyla paylaşılan gizli anahtar.
+        /// Düz metin değil; ASP.NET Data Protection ile şifrelenmiş olarak saklanır.
+        /// </summary>
+        public string? TwoFactorSecret { get; set; }
+
+        /// <summary>
+        /// Kullanıcının planı: "free" veya "pro". Aylık optimizasyon kotasını belirler.
+        /// </summary>
+        public string Plan { get; set; } = "free";
+
         // ===== Navigation Properties (İlişkiler) =====
 
         /// <summary>

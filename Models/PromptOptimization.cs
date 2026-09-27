@@ -95,6 +95,22 @@ namespace PromptForge.Api.Models
         public string? OptimizationTarget { get; set; }
 
         /// <summary>
+        /// Yanıt dili tercihi: "prompt" (promptun dili), "tr" veya "en".
+        /// </summary>
+        public string? ResponseLanguage { get; set; }
+
+        /// <summary>
+        /// Optimizasyonu kim yaptı: gerçek AI modelinin adı (örn. "claude-sonnet-5") veya "local" (yerel kural motoru).
+        /// </summary>
+        public string? Engine { get; set; }
+
+        /// <summary>
+        /// Arayüzün sonucu yeniden açarken ihtiyaç duyduğu analiz detayları (gereksinimler, sorunlar,
+        /// değişkenler, yapı kontrolleri) JSON olarak tek sütunda saklanır. Ayrı tablo gerektirmez.
+        /// </summary>
+        public string? DetailsJson { get; set; }
+
+        /// <summary>
         /// Optimizasyon işleminin yapıldığı tarih ve saat (UTC).
         /// </summary>
         public DateTime CreatedAt { get; set; }

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using PromptForge.Api.Data;
+using PromptForge.Api.Dtos;
 using PromptForge.Api.Models;
 
 namespace PromptForge.Api.Services
@@ -184,6 +185,26 @@ namespace PromptForge.Api.Services
                 };
 
             return null;
+        }
+
+        /// <summary>
+        /// Tüm kullanıcıları listeler.
+        /// </summary>
+        public async Task<List<UserInfo>> GetAllUsersAsync()
+        {
+            return await _context.Users
+                // Sadece okuyacağız, değiştirmeyeceğiz: EF'in değişiklik takibini kapatmak daha hızlıdır.
+                .AsNoTracking()
+                .OrderByDescending(u => u.CreatedAt)
+                // Select ile sadece gereken sütunları çekiyoruz; PasswordHash veritabanından hiç okunmaz.
+                .Select(u => new UserInfo
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    DisplayName = u.DisplayName,
+                    Avatar = u.Avatar
+                })
+                .ToListAsync();
         }
 
         // Email karşılaştırmaları büyük/küçük harfe takılmasın diye tek formata çeviririz.

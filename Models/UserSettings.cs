@@ -68,6 +68,24 @@ namespace PromptForge.Api.Models
         /// </summary>
         public string? Language { get; set; } = "tr";
 
+        // ===== Optimize ekranındaki son tercihler =====
+        // Kullanıcı ekranı her açtığında en son kullandığı ayarlarla devam eder.
+
+        /// <summary>Kullanım senaryosu: general, coding, research, content, data.</summary>
+        public string? UseCase { get; set; } = "general";
+
+        /// <summary>Çıktı formatı: auto, markdown, json, table, checklist, code.</summary>
+        public string? ResponseFormat { get; set; } = "auto";
+
+        /// <summary>Yanıt dili: prompt, tr, en.</summary>
+        public string? ResponseLanguage { get; set; } = "prompt";
+
+        /// <summary>Netleştirme kapısı açık mı?</summary>
+        public bool AskClarifying { get; set; } = true;
+
+        /// <summary>Varsayım görünürlüğü açık mı?</summary>
+        public bool ExposeAssumptions { get; set; } = true;
+
         // ===== Navigation Property =====
 
         /// <summary>
