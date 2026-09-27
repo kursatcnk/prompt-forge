@@ -144,4 +144,5 @@ E:\Github\prompt-forge\obj\Debug\net8.0\refint\PromptForge.Api.dll
 E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.pdb
 E:\Github\prompt-forge\obj\Debug\net8.0\PromptForge.Api.genruntimeconfig.cache
 E:\Github\prompt-forge\obj\Debug\net8.0\ref\PromptForge.Api.dll
+E:\Github\prompt-forge\bin\Debug\net8.0\BCrypt.Net-Core.dll
 E:\Github\prompt-forge\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

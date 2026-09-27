@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using PromptForge.Api.Data;
+using PromptForge.Api.Services;
 
 /// ====================================================================
 /// PromptForge ASP.NET Core Web API - Uygulama Başlangıç Noktası
@@ -44,6 +45,13 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 /// public UserController(PromptForgeDbContext context) => _context = context;
 builder.Services.AddDbContext<PromptForgeDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+/// ===== SERVIS KATMANI =====
+
+/// UserService'i ekle (Authentication işlemleri).
+/// IUserService interface'ini uygulamak için UserService sınıfını kaydet.
+/// Şu şekilde çağırılır: public AuthController(IUserService userService) => _userService = userService;
+builder.Services.AddScoped<IUserService, UserService>();
 
 /// ===== 3. CORS (Cross-Origin Resource Sharing) =====
 
