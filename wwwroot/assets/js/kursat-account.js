@@ -160,7 +160,15 @@
     const title = document.querySelector("#kursat-sidebar-plan-title");
     const copy = document.querySelector("#kursat-sidebar-plan-copy");
     if (title) title.textContent = me.usage.plan === "pro" ? "PromptForge Pro" : `${planName(me.usage.plan)} plan`;
-    if (copy) copy.textContent = `Bu ay ${me.usage.used}/${me.usage.limit} optimizasyon kullandın.`;
+    if (copy) copy.textContent = `Bu ay ${me.usage.used}/${me.usage.limit} hak kullanıldı.`;
+    // Kota çubuğu: %80'den sonra uyarı rengi, dolunca kırmızı.
+    const bar = document.querySelector("#kursat-sidebar-plan-bar");
+    if (bar) {
+      const pct = Math.min(100, Math.round(me.usage.used / Math.max(1, me.usage.limit) * 100));
+      bar.style.width = `${pct}%`;
+      bar.classList.toggle("is-warning", pct >= 80 && pct < 100);
+      bar.classList.toggle("is-full", pct >= 100);
+    }
   }
 
   // Üst bardaki gösterge: AI bağlıysa yeşil nokta + sağlayıcı adı, değilse sarı nokta + "Yerel mod".

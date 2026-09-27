@@ -813,3 +813,181 @@ body.kursat-editor-focus { overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- 13. Premium dokunuşlar ---------- */
+/* Kartlara çok hafif derinlik: düz ama "kâğıt gibi" durmasın. */
+:root { --shadow-card: 0 1px 2px rgba(17, 17, 19, .04), 0 1px 1px rgba(17, 17, 19, .02); }
+html[data-kursat-theme="dark"] { --shadow-card: 0 1px 2px rgba(0, 0, 0, .35); }
+.kursat-card { box-shadow: var(--shadow-card); }
+
+.kursat-sidebar { background: linear-gradient(180deg, color-mix(in srgb, var(--side-bg) 88%, #2a2a30) 0%, var(--side-bg) 42%); }
+.kursat-nav-button { position: relative; }
+.kursat-nav-button.is-active::before { content: ""; position: absolute; left: -10px; top: 7px; bottom: 7px; width: 2px; border-radius: 2px; background: var(--accent); }
+.kursat-nav-new, .kursat-nav-count { margin-left: auto; height: 18px; padding: 0 6px; border-radius: 5px; display: inline-grid; place-items: center; font-size: 10.5px; font-weight: 600; letter-spacing: .01em; }
+.kursat-nav-new { background: color-mix(in srgb, var(--accent) 22%, transparent); color: #ffb18f; }
+.kursat-nav-count { background: var(--side-active); color: var(--side-muted); font-variant-numeric: tabular-nums; }
+.kursat-side-meter { height: 4px; border-radius: 999px; background: var(--side-active); overflow: hidden; margin: 2px 0 2px; }
+.kursat-side-meter span { display: block; height: 100%; width: 0; border-radius: inherit; background: var(--accent); transition: width 600ms var(--ease); }
+.kursat-side-meter span.is-warning { background: var(--warning); }
+.kursat-side-meter span.is-full { background: var(--danger); }
+
+.kursat-eyebrow { font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: .01em; }
+.kursat-page-head h1 { font-size: 24px; letter-spacing: -.022em; }
+
+.kursat-forge-button { box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 6px 16px -6px color-mix(in srgb, var(--accent) 65%, transparent); }
+.kursat-forge-button:hover:not(:disabled) { box-shadow: 0 1px 0 rgba(255, 255, 255, .18) inset, 0 8px 22px -6px color-mix(in srgb, var(--accent) 75%, transparent); }
+.kursat-editor-card { transition: border-color var(--t) ease, box-shadow var(--t) ease; }
+.kursat-editor-card:focus-within { border-color: var(--border-strong); box-shadow: var(--shadow-card), 0 0 0 4px color-mix(in srgb, var(--accent) 8%, transparent); }
+
+.kursat-route-card, .kursat-flow-card, .kursat-block-card { box-shadow: var(--shadow-card); }
+.kursat-route-card:hover, .kursat-flow-card:hover { transform: translateY(-1px); }
+.kursat-variable-chip { cursor: pointer; }
+.kursat-variable-chip:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ---------- 14. Şablon galerisi ---------- */
+.kursat-template-toolbar { align-items: center; }
+.kursat-chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.kursat-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 11px; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text-2); font-size: 12.5px; font-weight: 500;
+  transition: border-color var(--t) ease, background var(--t) ease, color var(--t) ease;
+}
+.kursat-chip small { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.kursat-chip:hover { border-color: var(--border-strong); color: var(--text); }
+.kursat-chip.is-active { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.kursat-chip.is-active small { color: inherit; opacity: .65; }
+.kursat-template-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.kursat-template-card {
+  display: grid; gap: 8px; align-content: start; text-align: left; padding: 16px 16px 14px; min-height: 172px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); box-shadow: var(--shadow-card);
+  transition: border-color var(--t) ease, transform 160ms var(--ease), box-shadow 160ms ease;
+}
+.kursat-template-card:hover { border-color: var(--border-strong); transform: translateY(-2px); box-shadow: 0 10px 24px -14px rgba(17, 17, 19, .25); }
+.kursat-template-card strong { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; }
+.kursat-template-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kursat-template-model { font-size: 11.5px; color: var(--muted); }
+.kursat-template-desc { font-size: 12.8px; color: var(--muted); line-height: 1.5; }
+.kursat-template-foot { margin-top: auto; padding-top: 10px; display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: var(--faint); border-top: 1px solid var(--border); }
+.kursat-template-open { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+.kursat-template-open svg { width: 14px; height: 14px; transition: transform 160ms var(--ease); }
+.kursat-template-card:hover .kursat-template-open, .kursat-guide-tool:hover .kursat-template-open { color: var(--accent); }
+.kursat-template-card:hover .kursat-template-open svg, .kursat-guide-tool:hover .kursat-template-open svg { transform: translateX(2px); }
+.kursat-template-empty { grid-column: 1 / -1; }
+
+/* Değişken doldurma penceresi */
+.kursat-fill-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 12px; }
+.kursat-fill-input { min-height: 36px; height: 36px; resize: none; overflow: hidden; }
+#kursat-fill-preview { max-height: 240px; overflow: auto; }
+#kursat-fill-preview mark { background: var(--accent-soft); color: var(--accent); border-radius: 3px; padding: 0 2px; }
+.kursat-modal-copy code { font: 12px var(--mono); background: var(--surface-3); padding: 1px 4px; border-radius: 4px; }
+
+/* ---------- 15. Rehber ---------- */
+.kursat-guide-top { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.kursat-guide-progress { padding: 14px var(--pad) 0; }
+.kursat-guide-progress .kursat-progress span { background: var(--accent); }
+.kursat-checklist { list-style: none; margin: 0; padding: 8px var(--pad-sm) var(--pad-sm); display: grid; gap: 2px; }
+.kursat-checklist li { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 10px 8px; border-radius: var(--radius-sm); }
+.kursat-checklist li:hover { background: var(--surface-2); }
+.kursat-checklist strong { display: block; font-size: 13.5px; font-weight: 600; }
+.kursat-checklist li span { display: block; font-size: 12.5px; color: var(--muted); }
+.kursat-check-mark { width: 22px; height: 22px; border-radius: 50%; border: 1.5px dashed var(--border-strong); display: grid; place-items: center; }
+.kursat-check-mark svg { width: 13px; height: 13px; stroke-width: 2.6; color: #fff; }
+.kursat-checklist li.is-done .kursat-check-mark { border: 0; background: var(--success); }
+.kursat-checklist li.is-done strong { color: var(--muted); text-decoration: line-through; text-decoration-color: var(--faint); }
+.kursat-checklist .kursat-check-state { font-size: 12px; color: var(--success); font-weight: 500; }
+.kursat-checklist .kursat-button { height: 30px; font-size: 12.5px; }
+
+.kursat-quick-steps { list-style: none; margin: 0; padding: var(--pad-sm) var(--pad); display: grid; gap: 14px; }
+.kursat-quick-steps li { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 12px; }
+.kursat-quick-steps b { width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center; background: var(--primary); color: var(--on-primary); font-size: 12.5px; }
+.kursat-quick-steps strong { display: block; font-size: 13.5px; }
+.kursat-quick-steps span { font-size: 12.8px; color: var(--muted); }
+.kursat-guide-shortcuts { display: grid; gap: 8px; padding: var(--pad-sm) var(--pad); border-top: 1px solid var(--border); }
+.kursat-guide-shortcuts div { display: flex; justify-content: space-between; align-items: center; font-size: 12.8px; color: var(--text-2); }
+
+.kursat-guide-tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.kursat-guide-tool {
+  display: grid; gap: 6px; align-content: start; text-align: left; padding: 14px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--surface); color: var(--text); box-shadow: var(--shadow-card);
+  transition: border-color var(--t) ease, transform 160ms var(--ease);
+}
+.kursat-guide-tool:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+.kursat-guide-tool strong { font-size: 13.5px; }
+.kursat-guide-tool > span { font-size: 12.5px; color: var(--muted); }
+.kursat-guide-tool .kursat-guide-when { color: var(--text-2); font-weight: 500; }
+.kursat-guide-tool .kursat-template-open { margin-top: 4px; }
+
+.kursat-lessons { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+.kursat-lesson { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-card); overflow: hidden; }
+.kursat-lesson header { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; }
+.kursat-lesson header b { font: 600 12px var(--mono); color: var(--accent); padding-top: 2px; }
+.kursat-lesson header strong { display: block; font-size: 14px; }
+.kursat-lesson header span { font-size: 12.8px; color: var(--muted); }
+.kursat-lesson-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: 1px solid var(--border); }
+.kursat-lesson-pair > div { padding: 12px 16px; display: grid; gap: 4px; align-content: start; }
+.kursat-lesson-pair > div + div { border-left: 1px solid var(--border); }
+.kursat-lesson-pair small { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+.kursat-lesson-weak small { color: var(--danger); }
+.kursat-lesson-strong small { color: var(--success); }
+.kursat-lesson-pair p { font-size: 12.8px; color: var(--text-2); line-height: 1.5; }
+.kursat-lesson-weak { background: color-mix(in srgb, var(--danger-soft) 55%, transparent); }
+.kursat-lesson-strong { background: color-mix(in srgb, var(--success-soft) 55%, transparent); }
+
+.kursat-model-guide { display: grid; }
+.kursat-model-guide > div { display: grid; grid-template-columns: 110px minmax(0, 1fr) 150px; gap: 16px; align-items: baseline; padding: 12px var(--pad); border-top: 1px solid var(--border); }
+.kursat-model-guide > div:first-child { border-top: 0; }
+.kursat-model-guide strong { font-size: 13.5px; }
+.kursat-model-guide span { font-size: 13px; color: var(--text-2); }
+.kursat-model-guide em { font-style: normal; font-size: 12px; color: var(--muted); text-align: right; }
+
+.kursat-faq { display: grid; gap: 8px; }
+.kursat-faq-item { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0 16px; box-shadow: var(--shadow-card); }
+.kursat-faq-item summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; gap: 12px; padding: 13px 0; font-size: 13.5px; font-weight: 600; }
+.kursat-faq-item summary::-webkit-details-marker { display: none; }
+.kursat-faq-item summary::after { content: "+"; font-weight: 400; font-size: 18px; line-height: 1; color: var(--muted); transition: transform 160ms var(--ease); }
+.kursat-faq-item[open] summary::after { transform: rotate(45deg); }
+.kursat-faq-item p { padding: 0 0 14px; font-size: 13px; color: var(--text-2); }
+
+/* ---------- 16. Karşılama turu ---------- */
+.kursat-tour { display: grid; gap: 10px; }
+.kursat-tour-dots { display: flex; gap: 5px; }
+.kursat-tour-dots i { width: 18px; height: 4px; border-radius: 999px; background: var(--border); transition: background var(--t) ease, width var(--t) ease; }
+.kursat-tour-dots i.is-active { width: 28px; background: var(--accent); }
+.kursat-tour-kicker { font-size: 12px; font-weight: 600; color: var(--accent); margin-top: 6px; }
+.kursat-tour-title { font-size: 19px; letter-spacing: -.02em; line-height: 1.25; }
+.kursat-tour-visual { display: grid; grid-template-columns: minmax(0, .8fr) auto minmax(0, 1.2fr); align-items: center; gap: 12px; margin-top: 8px; padding: 16px; border-radius: var(--radius); background: var(--surface-2); border: 1px solid var(--border); }
+.kursat-tour-visual svg { color: var(--accent); }
+.kursat-tour-before { padding: 10px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); font-size: 13px; color: var(--muted); }
+.kursat-tour-after { padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); font-size: 12.5px; color: var(--text-2); }
+.kursat-tour-after b { color: var(--text); }
+.kursat-tour-steps { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 10px; }
+.kursat-tour-steps li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 12px; padding: 12px; border: 1px solid var(--border); border-radius: var(--radius); }
+.kursat-tour-steps b { width: 28px; height: 28px; border-radius: 8px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.kursat-tour-steps strong { display: block; font-size: 13.5px; }
+.kursat-tour-steps span { font-size: 12.8px; color: var(--muted); }
+.kursat-tour-choices { display: grid; gap: 8px; margin-top: 8px; }
+.kursat-tour-choices button { display: grid; gap: 2px; text-align: left; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); transition: border-color var(--t) ease, background var(--t) ease; }
+.kursat-tour-choices button:hover { border-color: var(--accent); background: var(--accent-soft); }
+.kursat-tour-choices strong { font-size: 13.5px; }
+.kursat-tour-choices span { font-size: 12.5px; color: var(--muted); }
+
+@media (max-width: 1180px) {
+  .kursat-template-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kursat-guide-tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 900px) {
+  .kursat-guide-top, .kursat-lessons { grid-template-columns: 1fr; }
+  .kursat-nav-button.is-active::before { display: none; }
+}
+@media (max-width: 560px) {
+  .kursat-template-grid, .kursat-guide-tools, .kursat-fill-fields, .kursat-lesson-pair { grid-template-columns: 1fr; }
+  .kursat-lesson-pair > div + div { border-left: 0; border-top: 1px solid var(--border); }
+  .kursat-model-guide > div { grid-template-columns: 1fr; gap: 2px; }
+  .kursat-model-guide em { text-align: left; }
+  .kursat-tour-visual { grid-template-columns: 1fr; justify-items: start; }
+  .kursat-tour-visual svg { transform: rotate(90deg); }
+  .kursat-checklist li { grid-template-columns: 22px minmax(0, 1fr); }
+  .kursat-checklist li > .kursat-button, .kursat-checklist .kursat-check-state { grid-column: 2; justify-self: start; }
+}
+/* Şablon alan adları küçük harfle yazıldı; ilk harfi büyük göster. */
+.kursat-fill-fields label::first-letter { text-transform: uppercase; }

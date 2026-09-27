@@ -24,6 +24,7 @@
 
   const kursatPageMeta = {
     forge: ["Çalışma alanı", "Optimize Et"],
+    templates: ["Oluştur", "Şablonlar"],
     workshop: ["Oluştur", "Atölye"],
     flows: ["Oluştur", "Akışlar"],
     blocks: ["Oluştur", "Yapı Taşları"],
@@ -31,11 +32,13 @@
     favorites: ["Kütüphane", "Favoriler"],
     compare: ["Araçlar", "Karşılaştır"],
     health: ["Araçlar", "Prompt Analizi"],
+    guide: ["Öğren", "Rehber"],
     settings: ["Tercihler", "Ayarlar"]
   };
 
   const kursatCommands = [
     ["Optimize Et", "Prompt editörünü aç", "forge"],
+    ["Şablonlar", "Hazır prompt şablonlarından seç", "templates"],
     ["Atölye", "Sıfırdan prompt oluştur", "workshop"],
     ["Akışlar", "Görevi adımlara böl", "flows"],
     ["Yapı Taşları", "Modüler prompt oluştur", "blocks"],
@@ -43,6 +46,7 @@
     ["Favoriler", "Kaydettiğin promptları gör", "favorites"],
     ["Karşılaştır", "İki sürümü yan yana incele", "compare"],
     ["Prompt Analizi", "Prompt sağlığını ölç", "health"],
+    ["Rehber", "Kullanım rehberi ve iyi prompt dersleri", "guide"],
     ["Ayarlar", "Çalışma alanını yönet", "settings"]
   ];
 
@@ -107,6 +111,14 @@
     if (label) label.textContent = user.displayName;
     userButton?.setAttribute("title", user.email || user.displayName);
     session?.updateUser({ id: user.id, email: user.email, displayName: user.displayName });
+
+    // Optimize Et başlığında saate göre kişisel selamlama.
+    const hour = new Date().getHours();
+    const greeting = hour < 5 ? "İyi geceler" : hour < 12 ? "Günaydın" : hour < 18 ? "İyi günler" : "İyi akşamlar";
+    const title = document.querySelector("#kursat-forge-title");
+    if (title) title.textContent = `${greeting}, ${user.displayName.trim().split(/\s+/)[0]}`;
+    const eyebrow = document.querySelector("#kursat-forge-eyebrow");
+    if (eyebrow) eyebrow.textContent = "Optimize Et";
   }
 
   // Tema ve yoğunluğu tek noktadan uyguluyorum; farklı ekranların kendi renk sistemini üretmesini istemiyorum.

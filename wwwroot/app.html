@@ -7,13 +7,13 @@
   <title>PromptForge</title>
   <link rel="icon" href="assets/img/kursat-promptforge-mark.svg" type="image/svg+xml">
   <!-- Giriş kontrolü: token yoksa sayfa çizilmeden giriş ekranına yönlendir. -->
-  <script src="assets/js/kursat-session.js?v=5"></script>
+  <script src="assets/js/kursat-session.js?v=6"></script>
   <script>
     PromptForgeSession.requireAuth("auth/sign-in.html");
     // İlk boyamada son kayıtlı görünümü uygula; hesaptaki ayarlar yüklenince kursat-core.js günceller.
     (()=>{const a=PromptForgeSession.readAppearance()||{};const pref=a.theme||"light";const dark=pref==="dark"||(pref==="system"&&matchMedia?.("(prefers-color-scheme: dark)")?.matches);const d=document.documentElement.dataset;d.kursatTheme=dark?"dark":"light";d.kursatThemePref=pref;d.kursatDensity=a.density||"comfortable";d.kursatMotion=a.motion||"on";})();
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="assets/css/kursat-app.css?v=5">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"><link rel="stylesheet" href="assets/css/kursat-app.css?v=6">
 </head>
 <body>
 <div class="kursat-app">
@@ -37,6 +37,7 @@
 
       <div class="kursat-nav-group">
         <p class="kursat-nav-label">Oluştur</p>
+        <button class="kursat-nav-button" data-kursat-view="templates" type="button"><span class="kursat-nav-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg></span><span>Şablonlar</span><span class="kursat-nav-new">Yeni</span></button>
         <button class="kursat-nav-button" data-kursat-view="workshop" type="button"><span class="kursat-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8m-8 4h5"/></svg></span><span>Atölye</span></button>
         <button class="kursat-nav-button" data-kursat-view="flows" type="button"><span class="kursat-nav-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><path d="M8 6h4a4 4 0 0 1 4 4v0M8 18h4a4 4 0 0 0 4-4v0"/></svg></span><span>Akışlar</span></button>
         <button class="kursat-nav-button" data-kursat-view="blocks" type="button"><span class="kursat-nav-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1"/><rect x="14" y="4" width="6" height="6" rx="1"/><rect x="4" y="14" width="6" height="6" rx="1"/><rect x="14" y="14" width="6" height="6" rx="1"/></svg></span><span>Yapı Taşları</span></button>
@@ -55,13 +56,18 @@
       </div>
 
       <div class="kursat-nav-group">
+        <p class="kursat-nav-label">Öğren</p>
+        <button class="kursat-nav-button" data-kursat-view="guide" type="button"><span class="kursat-nav-icon"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5v-15Z"/><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H20v3H6.5A2.5 2.5 0 0 1 4 20.5ZM9 7h7M9 11h5"/></svg></span><span>Rehber</span><span class="kursat-nav-count kursat-hidden" id="kursat-guide-badge">0/6</span></button>
+      </div>
+
+      <div class="kursat-nav-group">
         <p class="kursat-nav-label">Tercihler</p>
         <button class="kursat-nav-button" data-kursat-view="settings" type="button"><span class="kursat-nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21h-4v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3.1 14H3v-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1v4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg></span><span>Ayarlar</span></button>
         <button class="kursat-nav-button" id="kursat-signout" type="button"><span class="kursat-nav-icon"><svg viewBox="0 0 24 24"><path d="M10 5H5v14h5M14 8l4 4-4 4M8 12h10"/></svg></span><span>Çıkış</span></button>
       </div>
     </nav>
 
-    <div class="kursat-sidebar-footer"><strong id="kursat-sidebar-plan-title">PromptForge Pro</strong><p id="kursat-sidebar-plan-copy">Daha net promptlar oluştur, sürümlerini koru ve iş akışını hızlandır.</p><button class="kursat-sidebar-cta" id="kursat-open-plans" type="button">Planları Gör</button></div>
+    <div class="kursat-sidebar-footer"><strong id="kursat-sidebar-plan-title">PromptForge Pro</strong><p id="kursat-sidebar-plan-copy">Kullanım yükleniyor…</p><div class="kursat-side-meter"><span id="kursat-sidebar-plan-bar"></span></div><button class="kursat-sidebar-cta" id="kursat-open-plans" type="button">Planları Gör</button></div>
   </aside>
   <button class="kursat-sidebar-backdrop" id="kursat-sidebar-backdrop" type="button" aria-label="Menüyü kapat"></button>
 
@@ -83,8 +89,8 @@
       <!-- Optimize Et: ana çalışma alanı. Editör ilk ekranda; ayarlar editörün içinde, kalite paneli sağda. -->
       <section class="kursat-view is-active" id="kursat-view-forge" data-kursat-title="Optimize Et" data-kursat-group="Çalışma alanı">
         <div class="kursat-page-head">
-          <div class="kursat-page-head-copy"><h1>Optimize Et</h1><p>Promptunu yaz, hedef modeli ve amacını seç. Sonuç, seçtiğin modelin en iyi anladığı biçimde yeniden yazılır.</p></div>
-          <div class="kursat-head-actions"><button class="kursat-button" id="kursat-load-example" type="button">Örnek yükle</button><button class="kursat-button" data-kursat-view="workshop" type="button">Atölyeden başla</button></div>
+          <div class="kursat-page-head-copy"><p class="kursat-eyebrow" id="kursat-forge-eyebrow">Çalışma alanı</p><h1 id="kursat-forge-title">Optimize Et</h1><p>Promptunu yaz, hedef modeli ve amacını seç. Sonuç, seçtiğin modelin en iyi anladığı biçimde yeniden yazılır.</p></div>
+          <div class="kursat-head-actions"><button class="kursat-button" id="kursat-load-example" type="button">Örnek yükle</button><button class="kursat-button" data-kursat-view="templates" type="button">Şablondan başla</button></div>
         </div>
 
         <div class="kursat-forge-layout">
@@ -188,6 +194,12 @@
         </div>
       </section>
 
+      <section class="kursat-view" id="kursat-view-templates" data-kursat-title="Şablonlar" data-kursat-group="Oluştur">
+        <div class="kursat-page-head"><div class="kursat-page-head-copy"><p class="kursat-eyebrow">Oluştur</p><h1>Şablonlar</h1><p>Denenmiş prompt yapıları. Birini seç, boşlukları doldur ve editöre aktar. Her şablon en iyi çalıştığı model için hazırlandı.</p></div></div>
+        <div class="kursat-toolbar kursat-template-toolbar"><div class="kursat-chip-row" id="kursat-template-filters" role="group" aria-label="Kategori"></div><label class="kursat-search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><input class="kursat-input" id="kursat-template-search" placeholder="Şablon ara" autocomplete="off"></label></div>
+        <div class="kursat-template-grid" id="kursat-template-grid"></div>
+      </section>
+
       <section class="kursat-view" id="kursat-view-workshop" data-kursat-title="Atölye" data-kursat-group="Oluştur">
         <div class="kursat-page-head"><div class="kursat-page-head-copy"><h1>Atölye</h1><p>Elinde hazır bir prompt yoksa amacını seç ve birkaç soruyu yanıtla. Prompt sen yazdıkça oluşur.</p></div></div>
         <div class="kursat-grid-3" id="kursat-route-grid"></div>
@@ -233,6 +245,40 @@
         <div class="kursat-analysis" id="kursat-health-results"></div>
       </section>
 
+      <section class="kursat-view" id="kursat-view-guide" data-kursat-title="Rehber" data-kursat-group="Öğren">
+        <div class="kursat-page-head"><div class="kursat-page-head-copy"><p class="kursat-eyebrow">Öğren</p><h1>Rehber</h1><p>PromptForge'u nasıl kullanacağını ve daha iyi prompt yazmayı buradan öğren.</p></div><div class="kursat-head-actions"><button class="kursat-button" id="kursat-guide-tour" type="button">Tanıtım turunu aç</button></div></div>
+        <div class="kursat-guide-top">
+          <article class="kursat-card kursat-guide-checklist" id="kursat-guide-checklist"></article>
+          <article class="kursat-card kursat-guide-quick">
+            <div class="kursat-card-head"><div><h2>Hızlı başlangıç</h2><p>Bir optimizasyon 3 adım sürer.</p></div></div>
+            <ol class="kursat-quick-steps">
+              <li><b>1</b><div><strong>Yaz</strong><span>Editöre promptunu yaz. Sağdaki kalite puanı sen yazdıkça güncellenir.</span></div></li>
+              <li><b>2</b><div><strong>Model ve hedef seç</strong><span>Promptu kullanacağın modeli seç. “En iyi sonuç” eksikleri tamamlar, “En kısa” sadeleştirir.</span></div></li>
+              <li><b>3</b><div><strong>Kopyala</strong><span>Sonucu kopyala; ChatGPT, Claude veya Gemini'ye yapıştır. “Değişiklikler” sekmesi neyin neden değiştiğini gösterir.</span></div></li>
+            </ol>
+            <div class="kursat-guide-shortcuts"><div><span>Optimize et</span><kbd>Ctrl ↵</kbd></div><div><span>Komut paleti</span><kbd>Ctrl K</kbd></div><div><span>Sonucu kopyala</span><kbd>Ctrl Shift C</kbd></div></div>
+          </article>
+        </div>
+
+        <div class="kursat-section-head"><h2>Hangi aracı ne zaman kullanmalı?</h2><p>Her araç farklı bir başlangıç noktası için.</p></div>
+        <div class="kursat-guide-tools" id="kursat-guide-tools"></div>
+
+        <div class="kursat-section-head"><h2>İyi promptun 6 ölçütü</h2><p>Prompt Analizi bu ölçütlere göre puan verir. Zayıf ve güçlü örnekleri karşılaştır.</p></div>
+        <div class="kursat-lessons" id="kursat-guide-lessons"></div>
+
+        <div class="kursat-section-head"><h2>Hedef model rehberi</h2><p>İçerik aynı kalır; biçim modele göre değişir.</p></div>
+        <article class="kursat-card kursat-model-guide">
+          <div><strong>GPT</strong><span>Markdown başlıkları ve maddeler: Rol, Görev, Bağlam, Kurallar, Çıktı.</span><em>ChatGPT, Copilot</em></div>
+          <div><strong>Claude</strong><span>XML etiketleri; önce bağlam, sonra görev. Uzun belgelerde çok başarılı.</span><em>Claude.ai</em></div>
+          <div><strong>Gemini</strong><span>Etiketli satırlar; asıl görev en sonda, tek ve net cümle.</span><em>Gemini, AI Studio</em></div>
+          <div><strong>DeepSeek</strong><span>Sade, yoğun paragraflar; kurallar açık ve süssüz.</span><em>DeepSeek Chat</em></div>
+          <div><strong>Evrensel</strong><span>Her modelde çalışan düz, bölümlü metin.</span><em>Birden fazla araç</em></div>
+        </article>
+
+        <div class="kursat-section-head"><h2>Sık sorulan sorular</h2></div>
+        <div class="kursat-faq" id="kursat-guide-faq"></div>
+      </section>
+
       <section class="kursat-view" id="kursat-view-settings" data-kursat-title="Ayarlar" data-kursat-group="Tercihler">
         <div class="kursat-page-head"><div class="kursat-page-head-copy"><h1>Ayarlar</h1><p>Hesabın, güvenliğin, planın ve çalışma alanı tercihlerin.</p></div></div>
         <div class="kursat-settings-grid">
@@ -274,11 +320,13 @@
 
 <div class="kursat-toast-stack" id="kursat-toast-stack" aria-live="polite"></div>
 <input class="kursat-hidden" id="kursat-file-input" type="file" accept=".txt,.md,.json,text/plain,text/markdown,application/json">
-<script src="assets/js/kursat-core.js?v=5"></script>
-<script src="assets/js/kursat-forge.js?v=5"></script>
-<script src="assets/js/kursat-builders.js?v=5"></script>
-<script src="assets/js/kursat-library.js?v=5"></script>
-<script src="assets/js/kursat-account.js?v=5"></script>
-<script src="assets/js/kursat-analysis.js?v=5"></script>
+<script src="assets/js/kursat-core.js?v=6"></script>
+<script src="assets/js/kursat-forge.js?v=6"></script>
+<script src="assets/js/kursat-builders.js?v=6"></script>
+<script src="assets/js/kursat-library.js?v=6"></script>
+<script src="assets/js/kursat-account.js?v=6"></script>
+<script src="assets/js/kursat-analysis.js?v=6"></script>
+<script src="assets/js/kursat-templates.js?v=6"></script>
+<script src="assets/js/kursat-guide.js?v=6"></script>
 </body>
 </html>

@@ -1,1 +1,320 @@
-<!doctype html><html lang="tr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PromptForge</title><meta http-equiv="refresh" content="0;url=app.html#forge"></head><body><a href="app.html#forge">PromptForge çalışma alanını aç</a></body></html>
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="PromptForge; GPT, Claude, Gemini ve DeepSeek için promptlarını seçtiğin modelin en iyi anladığı biçime getirir ve daha iyi prompt yazmayı öğretir.">
+  <title>PromptForge · Yapay zekâya ne istediğini tam olarak anlat</title>
+  <link rel="icon" href="assets/img/kursat-promptforge-mark.svg" type="image/svg+xml">
+  <script src="assets/js/kursat-session.js?v=6"></script>
+  <script>
+    // Uygulamada seçilen tema tanıtım sayfasında da geçerli olsun (ilk boyamadan önce).
+    (()=>{const a=PromptForgeSession.readAppearance()||{};const pref=a.theme||"system";const dark=pref==="dark"||(pref==="system"&&matchMedia?.("(prefers-color-scheme: dark)")?.matches);document.documentElement.dataset.kursatTheme=dark?"dark":"light";})();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="assets/css/kursat-landing.css?v=6">
+</head>
+<body>
+<header class="lp-header" id="lp-header">
+  <div class="lp-wrap lp-header-row">
+    <a class="lp-brand" href="#top"><img src="assets/img/kursat-promptforge-mark.svg" alt=""><span>PromptForge</span></a>
+    <nav class="lp-nav" aria-label="Sayfa bölümleri">
+      <a href="#nasil">Nasıl çalışır</a>
+      <a href="#modeller">Modeller</a>
+      <a href="#ozellikler">Özellikler</a>
+      <a href="#ogren">İyi prompt</a>
+      <a href="#sss">SSS</a>
+    </nav>
+    <div class="lp-header-actions">
+      <a class="lp-link" href="auth/sign-in.html" data-lp-guest>Giriş yap</a>
+      <a class="lp-btn lp-btn--dark" href="auth/sign-up.html" data-lp-guest>Ücretsiz başla</a>
+      <a class="lp-btn lp-btn--dark lp-hidden" href="app.html#forge" data-lp-member>Çalışma alanını aç</a>
+    </div>
+  </div>
+</header>
+
+<main id="top">
+  <!-- 1. Giriş: ne yapıyor, kime yarıyor, hemen dene -->
+  <section class="lp-hero">
+    <div class="lp-wrap lp-hero-grid">
+      <div class="lp-hero-copy">
+        <p class="lp-pill"><i></i>GPT · Claude · Gemini · DeepSeek</p>
+        <h1>Yapay zekâya ne istediğini <em>tam olarak</em> anlat.</h1>
+        <p class="lp-lead">PromptForge yazdığın promptu okur, eksik bağlamı ve belirsiz ifadeleri bulur, sonra seçtiğin modelin en iyi anladığı biçimde yeniden yazar. Her analizde neyin neden değiştiğini de öğrenirsin.</p>
+        <div class="lp-cta-row">
+          <a class="lp-btn lp-btn--accent lp-btn--lg" href="auth/sign-up.html" data-lp-guest>Ücretsiz hesap oluştur</a>
+          <a class="lp-btn lp-btn--accent lp-btn--lg lp-hidden" href="app.html#forge" data-lp-member>Çalışma alanına git</a>
+          <a class="lp-btn lp-btn--ghost lp-btn--lg" href="#nasil">Nasıl çalışır?</a>
+        </div>
+        <ul class="lp-trust">
+          <li>Kredi kartı gerekmez</li>
+          <li>Ayda 50 ücretsiz optimizasyon</li>
+          <li>İki adımlı doğrulama</li>
+        </ul>
+      </div>
+
+      <!-- Canlı örnek: aynı prompt, üç modele göre üç farklı yapı -->
+      <div class="lp-demo" aria-label="Örnek optimizasyon">
+        <div class="lp-demo-head">
+          <div class="lp-dots"><i></i><i></i><i></i></div>
+          <span>Optimize Et</span>
+        </div>
+        <div class="lp-demo-body">
+          <div class="lp-demo-input">
+            <div class="lp-demo-label"><span>Senin promptun</span><b class="lp-score lp-score--low">22</b></div>
+            <p>Yeni ürünümüz için bir tanıtım e-postası yaz.</p>
+          </div>
+          <div class="lp-demo-tabs" role="tablist" aria-label="Hedef model">
+            <button class="is-active" type="button" role="tab" data-lp-model="gpt">GPT</button>
+            <button type="button" role="tab" data-lp-model="claude">Claude</button>
+            <button type="button" role="tab" data-lp-model="gemini">Gemini</button>
+          </div>
+          <div class="lp-demo-output">
+            <div class="lp-demo-label"><span id="lp-demo-style">Markdown başlıkları</span><b class="lp-score lp-score--high">91</b></div>
+<pre id="lp-demo-code" data-lp-code="gpt">## Rol
+Deneyimli bir B2B pazarlama metin yazarısın.
+
+## Görev
+Yeni ürünümüz için bir tanıtım e-postası yaz.
+
+## Bağlam
+- Ürün: {{ürün adı}} — {{tek cümlelik fayda}}
+- Hedef kitle: {{kitle}}
+
+## Kurallar
+- En fazla 150 kelime, samimi ama profesyonel ton
+- Tek ve net bir çağrı (CTA)
+
+## Çıktı
+Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
+          </div>
+          <div class="lp-demo-foot"><span>✓ Amaç korundu</span><span>✓ Bağlam eklendi</span><span>✓ Çıktı tanımlandı</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Nasıl çalışır: üç adım -->
+  <section class="lp-section" id="nasil">
+    <div class="lp-wrap">
+      <div class="lp-section-head">
+        <p class="lp-eyebrow">Nasıl çalışır</p>
+        <h2>Üç adımda daha iyi bir prompt.</h2>
+        <p>Prompt mühendisliği bilmene gerek yok. Ne istediğini kendi cümlelerinle yaz, gerisini birlikte netleştirelim.</p>
+      </div>
+      <ol class="lp-steps">
+        <li>
+          <span class="lp-step-no">1</span>
+          <h3>Promptunu yaz</h3>
+          <p>Aklındakini olduğu gibi yaz ya da hazır bir şablondan başla. Yazarken kalite puanı canlı olarak güncellenir, eksik bölümler işaretlenir.</p>
+        </li>
+        <li>
+          <span class="lp-step-no">2</span>
+          <h3>Modeli ve hedefi seç</h3>
+          <p>GPT, Claude, Gemini, DeepSeek veya evrensel. Hedef olarak “en iyi sonuç”, “dengeli” ya da “en kısa” seç; sonuç buna göre şekillenir.</p>
+        </li>
+        <li>
+          <span class="lp-step-no">3</span>
+          <h3>Kopyala ve kullan</h3>
+          <p>Optimize edilmiş promptu kopyala, favorilere ekle ya da geçmişten eski sürümle karşılaştır. Neyin değiştiğini “Değişiklikler” sekmesinde görürsün.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 3. Model farkı: aynı istek, farklı yapı -->
+  <section class="lp-section lp-section--tint" id="modeller">
+    <div class="lp-wrap lp-split">
+      <div class="lp-section-head lp-section-head--left">
+        <p class="lp-eyebrow">Modele özel biçim</p>
+        <h2>Her model aynı dili konuşmaz.</h2>
+        <p>Modeller farklı yapıları daha iyi takip eder. PromptForge içeriği korur, yalnızca biçimi hedef modele göre değiştirir.</p>
+      </div>
+      <div class="lp-model-table" role="table" aria-label="Modellere göre prompt biçimi">
+        <div role="row"><strong role="cell">GPT</strong><span role="cell">Markdown başlıkları ve maddeler: Rol, Görev, Bağlam, Kurallar, Çıktı.</span></div>
+        <div role="row"><strong role="cell">Claude</strong><span role="cell">XML etiketleri; önce bağlam, sonra görev. Uzun belgelerle çok iyi çalışır.</span></div>
+        <div role="row"><strong role="cell">Gemini</strong><span role="cell">Etiketli satırlar; asıl görev en sonda, net ve tek cümle.</span></div>
+        <div role="row"><strong role="cell">DeepSeek</strong><span role="cell">Sade ve yoğun paragraflar; gereksiz süs yok, kurallar açık.</span></div>
+        <div role="row"><strong role="cell">Evrensel</strong><span role="cell">Her modelde çalışan düz, bölümlü metin.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Özellikler -->
+  <section class="lp-section" id="ozellikler">
+    <div class="lp-wrap">
+      <div class="lp-section-head">
+        <p class="lp-eyebrow">Özellikler</p>
+        <h2>Promptla çalışmak için gereken her şey tek yerde.</h2>
+      </div>
+      <div class="lp-features">
+        <article><span class="lp-icon"><svg viewBox="0 0 24 24"><path d="M12 3v4m0 10v4M3 12h4m10 0h4M5.6 5.6l2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8"/></svg></span><h3>Optimize Et</h3><p>Promptunu seçtiğin modele ve hedefe göre yeniden yazar. Gereksinimlerini korur, tekrarları temizler.</p></article>
+        <article><span class="lp-icon"><svg viewBox="0 0 24 24"><path d="M4 12h4l2-5 4 10 2-5h4"/></svg></span><h3>Prompt Analizi</h3><p>Promptunu 6 ölçütte puanlar ve her eksik için yazdığın cümleden örnek vererek nasıl düzelteceğini gösterir.</p></article>
+        <article><span class="lp-icon"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4zM8 9h8m-8 4h5"/></svg></span><h3>Atölye</h3><p>Elinde prompt yoksa amacını seç, birkaç soruyu yanıtla. Prompt sen yazdıkça oluşur.</p></article>
+        <article><span class="lp-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 9v11"/></svg></span><h3>Şablon Galerisi</h3><p>Kod incelemeden e-postaya, hazır ve denenmiş şablonlar. Boşlukları doldur, tek tıkla editöre aktar.</p></article>
+        <article><span class="lp-icon"><svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="12" r="2"/><circle cx="6" cy="18" r="2"/><path d="M8 6h4a4 4 0 0 1 4 4M8 18h4a4 4 0 0 0 4-4"/></svg></span><h3>Akışlar ve Yapı Taşları</h3><p>Karmaşık işleri adım adım plana çevir ya da iyi bir promptun parçalarını tek tek birleştir.</p></article>
+        <article><span class="lp-icon"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v6l4 2"/></svg></span><h3>Geçmiş ve Karşılaştırma</h3><p>Her sürüm kaydedilir. İki sürümü yan yana koy, puan ve metin farkını gör, en iyisini favorile.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Öğretici bölüm: iyi promptun 6 ölçütü -->
+  <section class="lp-section lp-section--tint" id="ogren">
+    <div class="lp-wrap">
+      <div class="lp-section-head">
+        <p class="lp-eyebrow">İyi prompt nasıl yazılır</p>
+        <h2>Prompt Analizi bu altı ölçüte bakar.</h2>
+        <p>Bunları aklında tutarsan PromptForge'u açmadan da daha iyi sonuç alırsın.</p>
+      </div>
+      <div class="lp-principles">
+        <article><b>01</b><h3>Netlik</h3><p>Ne istediğini tek bir fiille söyle: “yaz”, “özetle”, “karşılaştır”. “Bunu daha iyi yap” gibi belirsiz ifadelerden kaçın.</p></article>
+        <article><b>02</b><h3>Bağlam</h3><p>Kim için, ne amaçla? Hedef kitle ve kullanım yeri, modelin tonu ve derinliği doğru seçmesini sağlar.</p></article>
+        <article><b>03</b><h3>Özgüllük</h3><p>Somut bilgi ver: ürün adı, rakamlar, örnekler. Model bilmediğini tahmin eder; tahmin genelde vasattır.</p></article>
+        <article><b>04</b><h3>Kısıtlar</h3><p>Yapılmaması gerekenleri yaz: kelime sınırı, yasaklı ifadeler, değişmemesi gereken davranış.</p></article>
+        <article><b>05</b><h3>Çıktı biçimi</h3><p>Sonucu nasıl istediğini tarif et: tablo, JSON, madde listesi, kaç seçenek, hangi sırayla.</p></article>
+        <article><b>06</b><h3>Verimlilik</h3><p>Her cümle bir işe yarasın. Tekrarlar ve dolgu kelimeler modelin dikkatini dağıtır, maliyeti artırır.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Plan -->
+  <section class="lp-section" id="plan">
+    <div class="lp-wrap">
+      <div class="lp-section-head">
+        <p class="lp-eyebrow">Plan</p>
+        <h2>Başlamak ücretsiz.</h2>
+      </div>
+      <div class="lp-plans">
+        <article class="lp-plan lp-plan--featured">
+          <div><h3>Ücretsiz</h3><p class="lp-price">0 ₺ <small>/ ay</small></p></div>
+          <ul><li>Ayda 50 optimizasyon ve analiz</li><li>Tüm hedef modeller</li><li>Şablonlar, Atölye, Akışlar</li><li>Geçmiş, favoriler, karşılaştırma</li></ul>
+          <a class="lp-btn lp-btn--accent" href="auth/sign-up.html" data-lp-guest>Hesap oluştur</a>
+          <a class="lp-btn lp-btn--accent lp-hidden" href="app.html#forge" data-lp-member>Çalışma alanına git</a>
+        </article>
+        <article class="lp-plan">
+          <div><h3>Pro</h3><p class="lp-price">Yakında</p></div>
+          <ul><li>Ayda 1000 optimizasyon</li><li>Öncelikli AI motoru</li><li>Sınırsız geçmiş</li><li>Ekip paylaşımı</li></ul>
+          <span class="lp-btn lp-btn--ghost is-disabled" aria-disabled="true">Yakında</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Sık sorulan sorular -->
+  <section class="lp-section lp-section--tint" id="sss">
+    <div class="lp-wrap lp-narrow">
+      <div class="lp-section-head">
+        <p class="lp-eyebrow">SSS</p>
+        <h2>Sık sorulan sorular</h2>
+      </div>
+      <div class="lp-faq">
+        <details><summary>PromptForge benim yerime yapay zekâya soru mu soruyor?</summary><p>Hayır. PromptForge promptunu iyileştirir; sonucu kopyalayıp ChatGPT, Claude, Gemini gibi istediğin araçta kullanırsın. Böylece hangi aracı kullandığın fark etmez.</p></details>
+        <details><summary>Hedef model seçmek neyi değiştiriyor?</summary><p>İçerik aynı kalır, biçim değişir. Örneğin Claude için XML etiketli ve bağlamı önce veren bir yapı, GPT için Markdown başlıklı bir yapı üretilir. Yukarıdaki örnekte sekmeler arasında geçiş yaparak farkı görebilirsin.</p></details>
+        <details><summary>“En iyi sonuç”, “Dengeli” ve “En kısa” ne demek?</summary><p>En iyi sonuç eksik bağlamı ve kalite ölçütlerini ekleyerek promptu genişletir. Dengeli aynı uzunlukta düzenli bir prompt üretir. En kısa kuralları koruyarak mümkün olan en kısa hâli verir.</p></details>
+        <details><summary>50 hak dolunca ne olur?</summary><p>Optimizasyon ve analiz o ay için durur; ay başında hakların otomatik yenilenir. Geçmişin, favorilerin, şablonlar ve Atölye kullanılmaya devam eder.</p></details>
+        <details><summary>Promptlarım güvende mi?</summary><p>Promptların yalnızca senin hesabında saklanır ve istediğin an geçmişini ya da hesabını tamamen silebilirsin. Şifren geri çözülemez biçimde saklanır; iki adımlı doğrulamayı Ayarlar'dan açabilirsin.</p></details>
+        <details><summary>Türkçe prompt yazabilir miyim?</summary><p>Evet. Yanıt dilini “Prompt ile aynı”, “Türkçe” ya da “İngilizce” olarak seçebilirsin. Analiz ve açıklamalar Türkçedir.</p></details>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Kapanış çağrısı -->
+  <section class="lp-final">
+    <div class="lp-wrap lp-final-inner">
+      <h2>Bir sonraki promptun daha iyi olsun.</h2>
+      <p>Hesap oluşturmak bir dakika sürer. İlk optimizasyonunu hemen yap.</p>
+      <div class="lp-cta-row lp-cta-row--center">
+        <a class="lp-btn lp-btn--accent lp-btn--lg" href="auth/sign-up.html" data-lp-guest>Ücretsiz başla</a>
+        <a class="lp-btn lp-btn--light lp-btn--lg" href="auth/sign-in.html" data-lp-guest>Giriş yap</a>
+        <a class="lp-btn lp-btn--accent lp-btn--lg lp-hidden" href="app.html#forge" data-lp-member>Çalışma alanını aç</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="lp-footer">
+  <div class="lp-wrap lp-footer-row">
+    <a class="lp-brand" href="#top"><img src="assets/img/kursat-promptforge-mark.svg" alt=""><span>PromptForge</span></a>
+    <p>© 2026 PromptForge · Geliştiren <a href="https://kursat.cankaroglu.com/" target="_blank" rel="noopener">Kürşatcan Çankaroğlu</a></p>
+  </div>
+</footer>
+
+<script>
+  (() => {
+    "use strict";
+    // Giriş yapmış ziyaretçiye "Giriş yap / Kayıt ol" yerine "Çalışma alanını aç" göster.
+    const member = !!PromptForgeSession.getToken();
+    document.querySelectorAll("[data-lp-guest]").forEach(el => el.classList.toggle("lp-hidden", member));
+    document.querySelectorAll("[data-lp-member]").forEach(el => el.classList.toggle("lp-hidden", !member));
+
+    // Üst menü: sayfa kaydırılınca alt çizgi belirir.
+    const header = document.getElementById("lp-header");
+    const onScroll = () => header.classList.toggle("is-scrolled", window.scrollY > 8);
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    // Örnek kutusu: aynı prompt, modele göre farklı yapı.
+    const samples = {
+      gpt: ["Markdown başlıkları", `## Rol
+Deneyimli bir B2B pazarlama metin yazarısın.
+
+## Görev
+Yeni ürünümüz için bir tanıtım e-postası yaz.
+
+## Bağlam
+- Ürün: {{ürün adı}} — {{tek cümlelik fayda}}
+- Hedef kitle: {{kitle}}
+
+## Kurallar
+- En fazla 150 kelime, samimi ama profesyonel ton
+- Tek ve net bir çağrı (CTA)
+
+## Çıktı
+Konu satırı, 3 önizleme metni ve e-posta gövdesi.`],
+      claude: ["XML etiketleri, önce bağlam", `<context>
+Ürün: {{ürün adı}} — {{tek cümlelik fayda}}
+Hedef kitle: {{kitle}}
+</context>
+
+<task>
+Bu ürün için bir tanıtım e-postası yaz.
+</task>
+
+<constraints>
+En fazla 150 kelime. Samimi ama profesyonel ton.
+Tek bir net çağrı (CTA).
+</constraints>
+
+<output_format>
+Konu satırı, 3 önizleme metni alternatifi ve e-posta gövdesi.
+</output_format>`],
+      gemini: ["Etiketli satırlar, görev sonda", `Bağlam: {{ürün adı}}, {{kitle}} için {{tek cümlelik fayda}} sağlayan yeni bir ürün.
+Ton: Samimi ama profesyonel.
+Uzunluk: En fazla 150 kelime.
+Çağrı: Tek ve net bir CTA.
+Çıktı: Konu satırı, 3 önizleme metni, e-posta gövdesi.
+
+Görev: Bu bilgilere göre ürünü tanıtan e-postayı yaz.`]
+    };
+    const code = document.getElementById("lp-demo-code");
+    const style = document.getElementById("lp-demo-style");
+    const tabs = document.querySelectorAll("[data-lp-model]");
+    let current = "gpt", timer = 0;
+    function show(model) {
+      current = model;
+      tabs.forEach(tab => { const on = tab.dataset.lpModel === model; tab.classList.toggle("is-active", on); tab.setAttribute("aria-selected", on); });
+      code.classList.remove("is-swapping"); void code.offsetWidth; code.classList.add("is-swapping");
+      style.textContent = samples[model][0];
+      code.textContent = samples[model][1];
+    }
+    tabs.forEach(tab => tab.addEventListener("click", () => { clearInterval(timer); show(tab.dataset.lpModel); }));
+    // Ziyaretçi dokunmazsa örnek kendiliğinden modeller arasında döner.
+    if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      const order = Object.keys(samples);
+      timer = setInterval(() => show(order[(order.indexOf(current) + 1) % order.length]), 5200);
+    }
+  })();
+</script>
+</body>
+</html>

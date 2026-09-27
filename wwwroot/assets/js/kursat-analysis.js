@@ -184,6 +184,8 @@
         if (status === 429 && data?.usage) document.dispatchEvent(new CustomEvent("kursat:usage-changed", { detail: data.usage }));
         render(localAnalysis(text), reason);
       }
+      // Rehberdeki "Promptunu analiz ettir" görevini tamamla.
+      document.dispatchEvent(new CustomEvent("kursat:milestone", { detail: "analysis" }));
     } finally {
       button.disabled = false;
       button.textContent = label;
