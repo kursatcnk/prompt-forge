@@ -21,15 +21,33 @@ namespace PromptForge.Api.Services
         private readonly OneTimeCodeService _codes;
         private readonly TwoFactorService _twoFactor;
         private readonly IEmailSender _email;
+        private readonly ILogger<UserService> _logger;
 
         public UserService(PromptForgeDbContext context, IConfiguration configuration, OneTimeCodeService codes,
-            TwoFactorService twoFactor, IEmailSender email)
+            TwoFactorService twoFactor, IEmailSender email, ILogger<UserService> logger)
         {
             _context = context;
             _configuration = configuration;
             _codes = codes;
             _twoFactor = twoFactor;
             _email = email;
+            _logger = logger;
+        }
+
+        // E-posta gönderilemezse (SMTP ayarı yanlış, internet yok...) asıl işlem bozulmasın: hatayı kaydet ve devam et.
+        // Kullanıcı ekrandaki "tekrar gönder" ile yeniden deneyebilir.
+        private async Task<bool> TrySendAsync(string to, EmailMessage message)
+        {
+            try
+            {
+                await _email.SendAsync(to, message);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "E-posta gönderilemedi: {Subject} → {To}", message.Subject, to);
+                return false;
+            }
         }
 
         /// <summary>Şifre kuralı tek yerde: başka yerler de (şifre değiştirme, sıfırlama) bunu kullanır.</summary>
@@ -125,8 +143,7 @@ namespace PromptForge.Api.Services
 
             var token = await _codes.CreateSecretTokenAsync(user.Id, OneTimeCodeService.PasswordReset, TimeSpan.FromMinutes(30));
             var link = $"{appBaseUrl}/auth/recover-password.html?email={Uri.EscapeDataString(email)}&token={token}";
-            await _email.SendAsync(email, "PromptForge şifre sıfırlama",
-                $"Merhaba {user.DisplayName},\n\nŞifreni sıfırlamak için bu bağlantıyı aç (30 dakika geçerli):\n{link}\n\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.");
+            await TrySendAsync(email, EmailTemplates.PasswordReset(user.DisplayName, link));
         }
 
         public async Task<(bool success, string? error)> ResetPasswordAsync(string email, string token, string newPassword)
@@ -146,11 +163,10 @@ namespace PromptForge.Api.Services
             return (true, null);
         }
 
-        public async Task SendEmailVerificationAsync(User user)
+        public async Task<bool> SendEmailVerificationAsync(User user)
         {
             var code = await _codes.CreateNumericCodeAsync(user.Id, OneTimeCodeService.EmailVerify, TimeSpan.FromMinutes(30));
-            await _email.SendAsync(user.Email, "PromptForge e-posta doğrulama kodu",
-                $"Merhaba {user.DisplayName},\n\nE-posta doğrulama kodun: {code}\n\nKod 30 dakika geçerlidir.");
+            return await TrySendAsync(user.Email, EmailTemplates.VerificationCode(user.DisplayName, code));
         }
 
         public async Task<List<UserInfo>> GetAllUsersAsync()

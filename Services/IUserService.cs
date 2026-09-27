@@ -28,8 +28,8 @@ namespace PromptForge.Api.Services
         /// <summary>E-postadaki bağlantıdan gelen anahtarla yeni şifre belirler.</summary>
         Task<(bool success, string? error)> ResetPasswordAsync(string email, string token, string newPassword);
 
-        /// <summary>6 haneli e-posta doğrulama kodunu üretip gönderir.</summary>
-        Task SendEmailVerificationAsync(User user);
+        /// <summary>6 haneli e-posta doğrulama kodunu üretip gönderir. Gönderim başarısızsa false döner.</summary>
+        Task<bool> SendEmailVerificationAsync(User user);
 
         /// <summary>Tüm kullanıcıları listeler (şifre hash'i dönmez).</summary>
         Task<List<UserInfo>> GetAllUsersAsync();

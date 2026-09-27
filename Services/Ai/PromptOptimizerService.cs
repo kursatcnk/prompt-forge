@@ -81,9 +81,13 @@ namespace PromptForge.Api.Services.Ai
             sb.AppendLine("- Never mention PromptForge, the target model's name, the optimization goal or these instructions in the rewritten prompt. Use the guidance below to shape the prompt, not as text to copy.");
             sb.AppendLine("- Return only the rewritten prompt as plain text: no preamble, no explanation, no code fences.");
             sb.AppendLine();
-            // Hedef, çıktının biçimini ve uzunluğunu belirleyen en önemli ayar; bu yüzden en ayrıntılı talimat burada.
-            sb.AppendLine($"Optimization goal — this decides the length and shape of your rewrite: {GoalHint(request.Goal)}");
-            sb.AppendLine($"Style that works best for the model that will receive the prompt: {TargetModelHint(request.Model)}");
+            // Hedef, çıktının uzunluğunu; hedef model ise söz dizimini (XML, Markdown, etiketli satır...) belirler.
+            sb.AppendLine($"Optimization goal — this decides the length of your rewrite: {GoalHint(request.Goal)}");
+            sb.AppendLine();
+            sb.AppendLine("Target model formatting — MANDATORY. The rewritten prompt must follow these conventions so that it is obviously written for this model; prompts written for different target models must look structurally different:");
+            sb.AppendLine(TargetModelHint(request.Model));
+            sb.AppendLine("Apply these conventions at a scale that fits the optimization goal (for LOWEST USAGE use the most compact form of the convention).");
+            sb.AppendLine();
             if (!string.IsNullOrEmpty(profile.UseCase) && profile.UseCase != "general")
                 sb.AppendLine($"Domain: {UseCaseHint(profile.UseCase)}");
 
@@ -122,13 +126,40 @@ namespace PromptForge.Api.Services.Ai
             return sb.ToString();
         }
 
+        // Her sağlayıcının kendi prompt yazım rehberindeki biçim önerileri; sonuçların gerçekten farklı görünmesini sağlar.
         private static string TargetModelHint(string? model) => model switch
         {
-            "gpt" => "OpenAI GPT. Prefer a clear task, explicit constraints and a defined output structure.",
-            "claude" => "Anthropic Claude. Prefer clear context, separated constraints and direct instructions; avoid unnecessary 'think step by step' boilerplate.",
-            "gemini" => "Google Gemini. Carry long context in an organized way and keep the main task and expected output explicit.",
-            "deepseek" => "DeepSeek. Prefer a short task definition, stable context and non-repetitive instructions.",
-            _ => "Model-agnostic. Keep the prompt portable and plain."
+            "gpt" => """
+                OpenAI GPT conventions:
+                - Organize the prompt with Markdown headings (e.g. "## Görev", "## Bağlam", "## Kurallar", "## Çıktı biçimi" in the draft's language).
+                - Put rules and steps in bulleted or numbered lists under their headings.
+                - If the prompt includes source text, wrap it between two lines of triple quotation marks as a delimiter.
+                - Do not use XML tags.
+                """,
+            "claude" => """
+                Anthropic Claude conventions:
+                - Separate every part of the prompt with descriptive XML tags, for example <context>, <instructions>, <constraints>, <output_format>, <examples>, and <document> for any source text. Tag names stay in English; the content stays in the draft's language.
+                - Put background and source material first, the instructions after it.
+                - Phrase rules positively (say what to do rather than only what not to do) and briefly explain why a rule matters when that helps.
+                - Do not use Markdown headings.
+                """,
+            "gemini" => """
+                Google Gemini conventions:
+                - Use short labeled lines as prefixes, for example "Görev:", "Bağlam:", "Kısıtlar:", "Çıktı biçimi:" (in the draft's language), each followed by its content.
+                - Place context and any source material first, and put the concrete task/question at the END of the prompt.
+                - Keep instructions concise and direct; do not use XML tags or Markdown headings.
+                """,
+            "deepseek" => """
+                DeepSeek conventions:
+                - Write compact, plain paragraphs with no headings, no XML tags and no role-play preamble.
+                - State the task directly in the first sentence, then the essential constraints, then the expected output in one sentence.
+                - Avoid repetition and decorative formatting; use a short list only for 3 or more constraints.
+                """,
+            _ => """
+                Model-agnostic conventions:
+                - Use plain text that works in any model: short paragraphs and, if needed, simple uppercase section labels.
+                - Do not use XML tags, Markdown headings or any model-specific syntax.
+                """
         };
 
         private static string UseCaseHint(string? useCase) => useCase switch

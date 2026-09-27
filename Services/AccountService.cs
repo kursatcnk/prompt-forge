@@ -122,10 +122,11 @@ namespace PromptForge.Api.Services
             return (true, null);
         }
 
-        public async Task ResendVerificationAsync(Guid userId)
+        /// <summary>Yeni doğrulama kodu gönderir. E-posta zaten doğrulandıysa gönderim yapmaz. Gönderim başarısızsa false.</summary>
+        public async Task<bool> ResendVerificationAsync(Guid userId)
         {
             var user = await _context.Users.FirstAsync(u => u.Id == userId);
-            if (!user.EmailConfirmed) await _users.SendEmailVerificationAsync(user);
+            return user.EmailConfirmed || await _users.SendEmailVerificationAsync(user);
         }
 
         /// <summary>

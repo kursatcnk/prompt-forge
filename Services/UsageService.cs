@@ -37,20 +37,62 @@ namespace PromptForge.Api.Services
             };
         }
 
-        /// <summary>Bir optimizasyonu kotaya işler. Token bilgisi sadece AI kullanıldıysa dolu olur.</summary>
-        public async Task RecordAsync(Guid userId, string provider, int? tokens)
+        /// <summary>
+        /// İşe başlamadan önce kotadan bir hak ayırır. Kota doluysa null döner.
+        ///
+        /// YARIŞ DURUMU: Kotanın son hakkında aynı anda gelen iki istek, ikisi de "yer var" görüp geçebilir.
+        /// Bunu önlemek için SQL Server'ın uygulama kilidi (sp_getapplock) ile aynı kullanıcının istekleri
+        /// sıraya sokulur: kilit al → say → yer varsa hakkı ekle → kilidi bırak. Farklı kullanıcılar birbirini beklemez.
+        /// </summary>
+        public async Task<Guid?> TryReserveAsync(Guid userId, string plan)
         {
-            _context.UsageTracking.Add(new UsageTracking
+            var limit = GetPlan(plan).MonthlyLimit;
+            var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            // Bağlantı hatasında tekrar deneme (EnableRetryOnFailure) açık olduğu için transaction bu strateji içinde çalışmalı.
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Provider = provider,
-                TokensUsed = tokens,
-                ApiCallCount = 1,
-                Date = DateTime.UtcNow
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                var lockName = $"quota:{userId}";
+                await _context.Database.ExecuteSqlInterpolatedAsync(
+                    $"EXEC sp_getapplock @Resource = {lockName}, @LockMode = 'Exclusive', @LockOwner = 'Transaction', @LockTimeout = 10000");
+
+                var used = await _context.UsageTracking.CountAsync(t => t.UserId == userId && t.Date >= monthStart);
+                if (used >= limit)
+                {
+                    await transaction.RollbackAsync();
+                    return (Guid?)null;
+                }
+
+                var reservation = new UsageTracking
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Provider = "pending",
+                    ApiCallCount = 1,
+                    Date = DateTime.UtcNow
+                };
+                _context.UsageTracking.Add(reservation);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync(); // Kilit transaction'la birlikte serbest kalır.
+                return (Guid?)reservation.Id;
             });
+        }
+
+        /// <summary>Ayrılan hakkı, işi kimin yaptığı ve harcanan token bilgisiyle tamamlar.</summary>
+        public async Task CompleteAsync(Guid reservationId, string provider, int? tokens)
+        {
+            var row = await _context.UsageTracking.FindAsync(reservationId);
+            if (row == null) return;
+            row.Provider = provider;
+            row.TokensUsed = tokens;
             await _context.SaveChangesAsync();
         }
+
+        /// <summary>İş yapılamadıysa (örn. AI analizi başarısız) ayrılan hakkı iade eder.</summary>
+        public async Task ReleaseAsync(Guid reservationId) =>
+            await _context.UsageTracking.Where(t => t.Id == reservationId).ExecuteDeleteAsync();
     }
 
     public record PlanDefinition(string Key, string Name, int MonthlyLimit, string Price, string[] Features);

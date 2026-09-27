@@ -28,6 +28,15 @@ namespace PromptForge.Api.Dtos
         public DateTime CreatedAt { get; set; }
     }
 
+    /// <summary>Kota dolduğunda dönen cevap: mesaj + güncel kullanım (arayüz geri sayımı buradan gösterir).</summary>
+    public class QuotaExceededResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public string Code { get; set; } = "quota_exceeded";
+        public UsageDto Usage { get; set; } = new();
+    }
+
     /// <summary>Basit başarı/hata cevabı: { success, message }</summary>
     public class MessageResponse
     {

@@ -64,8 +64,9 @@ namespace PromptForge.Api.Controllers
         [HttpPost("resend-verification")]
         public async Task<ActionResult<MessageResponse>> ResendVerification()
         {
-            await _account.ResendVerificationAsync(User.GetUserId());
-            return Ok(MessageResponse.Ok("Yeni doğrulama kodu gönderildi."));
+            return await _account.ResendVerificationAsync(User.GetUserId())
+                ? Ok(MessageResponse.Ok("Yeni doğrulama kodu e-postana gönderildi."))
+                : StatusCode(StatusCodes.Status502BadGateway, MessageResponse.Fail("E-posta şu an gönderilemedi. Birkaç dakika sonra tekrar dene."));
         }
 
         [HttpPost("two-factor/setup")]

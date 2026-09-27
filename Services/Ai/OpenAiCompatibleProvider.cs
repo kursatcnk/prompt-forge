@@ -28,7 +28,7 @@ namespace PromptForge.Api.Services.Ai
         public string Model => string.IsNullOrWhiteSpace(_options.Model) ? DefaultModel : _options.Model;
         public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.ApiKey);
 
-        public async Task<AiCompletion> CompleteAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken)
+        public async Task<AiCompletion> CompleteAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken, bool jsonOutput = false)
         {
             var body = new JsonObject
             {
@@ -39,17 +39,24 @@ namespace PromptForge.Api.Services.Ai
                     new JsonObject { ["role"] = "user", ["content"] = userMessage }
                 }
             };
+            // JSON modu: model geçerli bir JSON nesnesi döndürmek zorunda kalır.
+            if (jsonOutput)
+                body["response_format"] = new JsonObject { ["type"] = "json_object" };
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, Endpoint)
+            HttpRequestMessage CreateRequest()
             {
-                Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json")
-            };
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+                var request = new HttpRequestMessage(HttpMethod.Post, Endpoint)
+                {
+                    Content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json")
+                };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _options.ApiKey);
+                return request;
+            }
 
             HttpResponseMessage response;
             try
             {
-                response = await _httpClientFactory.CreateClient("ai").SendAsync(request, cancellationToken);
+                response = await AiHttp.SendWithRetryAsync(_httpClientFactory.CreateClient("ai"), CreateRequest, cancellationToken);
             }
             catch (HttpRequestException ex)
             {

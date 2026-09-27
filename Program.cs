@@ -127,6 +127,7 @@ builder.Services.AddSingleton<IAiProvider, OpenAiProvider>();
 builder.Services.AddSingleton<IAiProvider, GeminiProvider>();
 builder.Services.AddSingleton<IAiProvider, DeepSeekProvider>();
 builder.Services.AddSingleton<PromptOptimizerService>();
+builder.Services.AddSingleton<PromptAnalysisService>();
 
 // ===== 7. UYGULAMAYI OLUŞTUR =====
 

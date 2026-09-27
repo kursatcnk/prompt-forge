@@ -47,17 +47,20 @@ namespace PromptForge.Api.Controllers
             var userId = User.GetUserId();
             var me = await _account.GetMeAsync(userId);
             if (me == null) return Unauthorized();
+            if (QuotaExceeded(me.Usage) is { } quotaError) return quotaError;
 
-            // Kota kontrolü: plan limitine ulaşıldıysa 429 (Too Many Requests) dön.
-            if (me.Usage.Used >= me.Usage.Limit)
-                return StatusCode(StatusCodes.Status429TooManyRequests,
-                    MessageResponse.Fail($"Bu ayki {me.Usage.Limit} optimizasyon hakkını kullandın. Kota {me.Usage.ResetsAt:dd.MM.yyyy} tarihinde yenilenir."));
+            // Hakkı işe başlamadan ayır: aynı anda gelen istekler kotayı aşamaz.
+            var reservation = await _usage.TryReserveAsync(userId, me.Usage.Plan);
+            if (reservation == null) return QuotaResponse(await _usage.GetUsageAsync(userId, me.Usage.Plan));
 
             var (optimized, engine, usedAi, notice, tokens) = await _optimizer.OptimizeAsync(request, cancellationToken);
             if (string.IsNullOrWhiteSpace(optimized))
+            {
+                await _usage.ReleaseAsync(reservation.Value);
                 return StatusCode(StatusCodes.Status502BadGateway, MessageResponse.Fail(notice ?? "Optimizasyon sonucu üretilemedi."));
+            }
 
-            await _usage.RecordAsync(userId, usedAi ? engine : "local", tokens);
+            await _usage.CompleteAsync(reservation.Value, usedAi ? engine : "local", tokens);
 
             return Ok(new OptimizeResponse
             {
@@ -68,6 +71,54 @@ namespace PromptForge.Api.Controllers
                 Usage = await _usage.GetUsageAsync(userId, me.Usage.Plan)
             });
         }
+
+        /// <summary>
+        /// Promptu AI ile değerlendirir (öğretici analiz). Aylık kotadan düşer.
+        /// AI yoksa 503 döner; arayüz bu durumda tarayıcıdaki yerel analizi gösterir.
+        /// </summary>
+        [HttpPost("analyze")]
+        public async Task<ActionResult<AnalysisResult>> Analyze([FromBody] AnalyzeRequest request, [FromServices] PromptAnalysisService analysis, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrWhiteSpace(request.Prompt))
+                return BadRequest(MessageResponse.Fail("Analiz için bir prompt yaz."));
+            if (request.Prompt.Length > MaxPromptLength)
+                return BadRequest(MessageResponse.Fail($"Prompt en fazla {MaxPromptLength:N0} karakter olabilir."));
+
+            var userId = User.GetUserId();
+            var me = await _account.GetMeAsync(userId);
+            if (me == null) return Unauthorized();
+            if (QuotaExceeded(me.Usage) is { } quotaError) return quotaError;
+
+            var reservation = await _usage.TryReserveAsync(userId, me.Usage.Plan);
+            if (reservation == null) return QuotaResponse(await _usage.GetUsageAsync(userId, me.Usage.Plan));
+
+            try
+            {
+                var result = await analysis.AnalyzeAsync(request.Prompt, cancellationToken);
+                await _usage.CompleteAsync(reservation.Value, result.Engine ?? "ai", null);
+                result.Usage = await _usage.GetUsageAsync(userId, me.Usage.Plan);
+                return Ok(result);
+            }
+            catch (AiProviderException ex)
+            {
+                // AI analizi yapılamadıysa hak iade edilir; kullanıcı yerel analizi görür, kotası düşmez.
+                await _usage.ReleaseAsync(reservation.Value);
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, MessageResponse.Fail(ex.Message));
+            }
+        }
+
+        /// <summary>
+        /// Kota doluysa 429 (Too Many Requests) cevabı üretir, değilse null.
+        /// Hem optimize hem analiz aynı aylık hakkı kullanır; süre dolana kadar ikisi de durur.
+        /// </summary>
+        private ObjectResult? QuotaExceeded(UsageDto usage) => usage.Used >= usage.Limit ? QuotaResponse(usage) : null;
+
+        private ObjectResult QuotaResponse(UsageDto usage) =>
+            StatusCode(StatusCodes.Status429TooManyRequests, new QuotaExceededResponse
+            {
+                Message = $"Bu ayki {usage.Limit} hakkının tamamını kullandın. Kotan {usage.ResetsAt.ToLocalTime():dd.MM.yyyy HH:mm} tarihinde yenilenecek.",
+                Usage = usage
+            });
 
         [HttpPost]
         public async Task<ActionResult<PromptRecordDto>> Save([FromBody] PromptRecordDto record)

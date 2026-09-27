@@ -18,8 +18,11 @@ namespace PromptForge.Api.Services.Ai
         /// <summary>API anahtarı tanımlı mı? Tanımlı değilse bu sağlayıcı hiç çağrılmaz.</summary>
         bool IsConfigured { get; }
 
-        /// <summary>Sistem talimatı + kullanıcı mesajı gönderir, modelin metin cevabını döner.</summary>
-        Task<AiCompletion> CompleteAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken);
+        /// <summary>
+        /// Sistem talimatı + kullanıcı mesajı gönderir, modelin metin cevabını döner.
+        /// jsonOutput: true ise sağlayıcı destekliyorsa cevabın geçerli JSON olması zorunlu tutulur (analiz gibi yapılandırılmış sonuçlar için).
+        /// </summary>
+        Task<AiCompletion> CompleteAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken, bool jsonOutput = false);
     }
 
     /// <summary>Bir AI çağrısının sonucu: üretilen metin ve harcanan token sayıları.</summary>

@@ -60,6 +60,11 @@
       return;
     }
     session.saveSession(data.token, data.user, remember);
+    // E-postası doğrulanmamış kullanıcı önce doğrulama ekranını görür; oradan "Şimdilik atla" ile devam edebilir.
+    if (data.user && !data.user.emailConfirmed) {
+      navigate(form, "email-verification.html", "Giriş başarılı. Önce e-posta adresini doğrulayalım.");
+      return;
+    }
     navigate(form, APP_URL, "Giriş başarılı. Çalışma alanına yönlendiriliyorsun.");
   });
 
@@ -121,7 +126,7 @@
   document.querySelector("#kursat-verify-resend")?.addEventListener("click", async event => {
     event.preventDefault();
     const { ok, data } = await session.api.post("/api/account/resend-verification");
-    showMessage(ok ? "Yeni kod gönderildi. (Geliştirme modunda kod, API'nin konsol penceresine yazılır.)" : (data?.message || "Kod gönderilemedi."), ok ? "success" : "error");
+    showMessage(ok ? (data?.message || "Yeni kod gönderildi.") : (data?.message || "Kod gönderilemedi."), ok ? "success" : "error");
   });
 
   // ===== ŞİFREMİ UNUTTUM: POST /api/auth/forgot-password =====
@@ -133,7 +138,7 @@
     setLoading(form, "Gönderiliyor...");
     const { ok, data } = await session.api.post("/api/auth/forgot-password", { email });
     resetLoading(form);
-    showMessage(ok ? `${data.message} Bağlantı 30 dakika geçerlidir. (Geliştirme modunda bağlantı, API'nin konsol penceresine yazılır.)` : (data?.message || "İstek gönderilemedi."), ok ? "success" : "error");
+    showMessage(ok ? `${data.message} Bağlantı 30 dakika geçerlidir; gelen kutunu ve spam klasörünü kontrol et.` : (data?.message || "İstek gönderilemedi."), ok ? "success" : "error");
   });
 
   // ===== YENİ ŞİFRE: POST /api/auth/reset-password (e-postadaki bağlantıdan gelir) =====

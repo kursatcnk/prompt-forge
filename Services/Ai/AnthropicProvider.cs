@@ -25,7 +25,8 @@ namespace PromptForge.Api.Services.Ai
         public string Model => string.IsNullOrWhiteSpace(_options.Model) ? "claude-opus-5" : _options.Model;
         public bool IsConfigured => !string.IsNullOrWhiteSpace(_options.ApiKey);
 
-        public async Task<AiCompletion> CompleteAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken)
+        // jsonOutput: Claude'da talimatla sağlanır (sistem promptu "sadece JSON döndür" der); çağıran taraf metinden JSON'u ayıklar.
+        public async Task<AiCompletion> CompleteAsync(string systemPrompt, string userMessage, CancellationToken cancellationToken, bool jsonOutput = false)
         {
             var client = new AnthropicClient { ApiKey = _options.ApiKey };
 

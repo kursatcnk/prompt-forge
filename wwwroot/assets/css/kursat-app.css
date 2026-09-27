@@ -1,0 +1,815 @@
+/* ==========================================================================
+   PromptForge — uygulama tasarım sistemi
+   Tek dosya, tek kaynak: renkler, tipografi, boşluklar ve bileşenler burada.
+   Açık/koyu tema aynı değişkenlerle çalışır; bileşenlerde sabit renk yazılmaz.
+   ========================================================================== */
+
+/* ---------- 1. Tasarım değişkenleri (tokens) ---------- */
+:root {
+  --bg: #f7f7f8;
+  --surface: #ffffff;
+  --surface-2: #fafafb;
+  --surface-3: #f1f1f3;
+  --border: #e6e6e9;
+  --border-strong: #d4d4d8;
+  --text: #111113;
+  --text-2: #3f3f46;
+  --muted: #6b6b73;
+  --faint: #a1a1aa;
+
+  --accent: #d9541e;
+  --accent-hover: #c2491a;
+  --accent-soft: #fdf1ec;
+  --accent-line: #f3c3ae;
+  --on-accent: #ffffff;
+
+  --success: #15803d;
+  --success-soft: #edf8f1;
+  --warning: #a16207;
+  --warning-soft: #fdf6e3;
+  --danger: #b91c1c;
+  --danger-soft: #fdeeee;
+
+  --primary: #111113;
+  --primary-hover: #2a2a2e;
+  --on-primary: #ffffff;
+
+  --side-bg: #111113;
+  --side-border: #232327;
+  --side-text: #ececef;
+  --side-muted: #8b8b94;
+  --side-hover: #1b1b1f;
+  --side-active: #26262b;
+
+  --radius: 10px;
+  --radius-sm: 7px;
+  --radius-xs: 5px;
+  --shadow-pop: 0 16px 40px rgba(17, 17, 19, .14), 0 2px 8px rgba(17, 17, 19, .06);
+  --focus: 0 0 0 3px rgba(217, 84, 30, .18);
+
+  --pad: 20px;
+  --pad-sm: 14px;
+  --gap: 16px;
+  --control-h: 36px;
+
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --t: 140ms;
+
+  color-scheme: light;
+}
+
+html[data-kursat-theme="dark"] {
+  --bg: #0e0e10;
+  --surface: #161618;
+  --surface-2: #1a1a1d;
+  --surface-3: #222226;
+  --border: #27272b;
+  --border-strong: #36363c;
+  --text: #ededf0;
+  --text-2: #c9c9cf;
+  --muted: #9a9aa3;
+  --faint: #6b6b73;
+
+  --accent: #ef7240;
+  --accent-hover: #f5875a;
+  --accent-soft: #2a1911;
+  --accent-line: #6b3520;
+  --on-accent: #ffffff;
+
+  --success: #4ade80;
+  --success-soft: #0f2418;
+  --warning: #f2b454;
+  --warning-soft: #2a200e;
+  --danger: #f87171;
+  --danger-soft: #2b1414;
+
+  --primary: #ededf0;
+  --primary-hover: #ffffff;
+  --on-primary: #111113;
+
+  --side-bg: #0b0b0d;
+  --side-border: #1f1f23;
+  --side-hover: #17171a;
+  --side-active: #202024;
+
+  --shadow-pop: 0 16px 40px rgba(0, 0, 0, .5), 0 2px 8px rgba(0, 0, 0, .3);
+  --focus: 0 0 0 3px rgba(239, 114, 64, .25);
+  color-scheme: dark;
+}
+
+/* Sıkı yoğunluk: sadece boşluk değişkenleri küçülür, bileşenler aynı kalır. */
+html[data-kursat-density="compact"] {
+  --pad: 14px;
+  --pad-sm: 10px;
+  --gap: 12px;
+  --control-h: 32px;
+}
+
+/* ---------- 2. Temel ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 400 14px/1.5 var(--font);
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+h1, h2, h3, h4, p { margin: 0; }
+h1 { font-size: 20px; line-height: 1.3; font-weight: 600; letter-spacing: -.015em; }
+h2 { font-size: 15px; line-height: 1.35; font-weight: 600; letter-spacing: -.005em; }
+h3 { font-size: 14px; line-height: 1.4; font-weight: 600; }
+p { color: var(--muted); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+a { color: inherit; }
+svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: 0 0 auto; }
+kbd { font: 500 11px var(--font); color: var(--muted); border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--surface); }
+pre { margin: 0; }
+:focus-visible { outline: none; box-shadow: var(--focus); }
+::selection { background: var(--accent-soft); color: var(--text); }
+.kursat-hidden { display: none !important; }
+
+/* ---------- 3. Uygulama iskeleti ---------- */
+.kursat-app { display: grid; grid-template-columns: 240px minmax(0, 1fr); min-height: 100vh; }
+
+.kursat-sidebar {
+  position: sticky; top: 0; height: 100vh;
+  display: flex; flex-direction: column;
+  background: var(--side-bg); color: var(--side-text);
+  border-right: 1px solid var(--side-border);
+  padding: 14px 10px;
+  overflow-y: auto;
+}
+.kursat-brand-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 6px 14px; }
+.kursat-brand { display: flex; align-items: center; gap: 9px; background: none; border: 0; padding: 0; color: var(--side-text); }
+.kursat-brand img { width: 24px; height: 24px; border-radius: 6px; }
+.kursat-brand-copy strong { font-size: 14px; font-weight: 600; letter-spacing: -.01em; }
+.kursat-sidebar-close { display: none; background: none; border: 0; color: var(--side-muted); padding: 6px; border-radius: 6px; }
+
+.kursat-nav { display: grid; gap: 14px; }
+.kursat-nav-group { display: grid; gap: 1px; }
+.kursat-nav-label { font-size: 11px; font-weight: 500; color: var(--side-muted); padding: 0 8px 4px; }
+.kursat-nav-button {
+  display: flex; align-items: center; gap: 10px;
+  height: 32px; padding: 0 8px; border: 0; border-radius: 6px;
+  background: transparent; color: #b8b8c0; font-size: 13px; font-weight: 500; text-align: left;
+  transition: background var(--t) ease, color var(--t) ease;
+}
+.kursat-nav-button:hover { background: var(--side-hover); color: var(--side-text); }
+.kursat-nav-button.is-active { background: var(--side-active); color: #ffffff; }
+.kursat-nav-button.is-active .kursat-nav-icon { color: var(--accent); }
+.kursat-nav-icon { display: grid; place-items: center; color: var(--side-muted); }
+
+.kursat-sidebar-footer {
+  margin-top: auto; padding: 12px; border: 1px solid var(--side-border); border-radius: 8px;
+  display: grid; gap: 6px; background: var(--side-hover);
+}
+.kursat-sidebar-footer strong { font-size: 12.5px; font-weight: 600; }
+.kursat-sidebar-footer p { font-size: 12px; color: var(--side-muted); }
+.kursat-sidebar-cta {
+  margin-top: 4px; height: 30px; border-radius: 6px; border: 1px solid #34343a;
+  background: transparent; color: var(--side-text); font-size: 12.5px; font-weight: 500;
+}
+.kursat-sidebar-cta:hover { background: var(--side-active); }
+.kursat-sidebar-backdrop { display: none; }
+
+.kursat-main { min-width: 0; display: flex; flex-direction: column; }
+.kursat-topbar {
+  position: sticky; top: 0; z-index: 30;
+  height: 56px; padding: 0 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: saturate(160%) blur(10px);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--t) ease;
+}
+.kursat-topbar.is-scrolled { border-bottom-color: var(--border); }
+.kursat-topbar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.kursat-mobile-menu { display: none; }
+.kursat-page-context { display: flex; align-items: center; gap: 8px; font-size: 13px; white-space: nowrap; }
+.kursat-page-context small { color: var(--muted); font-size: 13px; }
+.kursat-page-context small::after { content: "/"; margin-left: 8px; color: var(--faint); }
+.kursat-page-context strong { font-weight: 500; }
+.kursat-topbar-actions { display: flex; align-items: center; gap: 8px; }
+
+.kursat-workspace-status {
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: 999px; background: var(--surface);
+  font-size: 12px; font-weight: 500; color: var(--text-2);
+}
+.kursat-workspace-status i { width: 6px; height: 6px; border-radius: 50%; background: var(--success); }
+.kursat-workspace-status.is-local i { background: var(--warning); }
+.kursat-workspace-status:hover { border-color: var(--border-strong); }
+
+.kursat-command-button {
+  display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 10px; min-width: 220px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+  color: var(--muted); font-size: 13px;
+}
+.kursat-command-button span:nth-of-type(1) { flex: 1; text-align: left; }
+.kursat-command-button:hover { border-color: var(--border-strong); }
+.kursat-key { font: 500 11px var(--font); color: var(--muted); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; }
+
+.kursat-icon-button {
+  display: inline-grid; place-items: center; width: 32px; height: 32px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text-2);
+}
+.kursat-icon-button:hover { border-color: var(--border-strong); color: var(--text); }
+.kursat-theme-icon-moon { display: none; }
+html[data-kursat-theme="dark"] .kursat-theme-icon-sun { display: none; }
+html[data-kursat-theme="dark"] .kursat-theme-icon-moon { display: block; }
+
+.kursat-user-button {
+  display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px 0 4px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+  font-size: 13px; font-weight: 500; color: var(--text);
+}
+.kursat-user-button:hover { border-color: var(--border-strong); }
+.kursat-avatar {
+  width: 24px; height: 24px; border-radius: 5px; display: grid; place-items: center;
+  background: var(--primary); color: var(--on-primary); font-size: 10.5px; font-weight: 600;
+}
+
+.kursat-content { width: 100%; max-width: 1240px; margin: 0 auto; padding: 24px 28px 72px; outline: none; }
+
+/* ---------- 4. Sayfa başlığı ve görünümler ---------- */
+.kursat-view { display: none; }
+.kursat-view.is-active { display: grid; gap: var(--gap); align-content: start; }
+.kursat-view.is-active.is-entering { animation: pfViewIn 240ms var(--ease) both; }
+html[data-kursat-motion="off"] *, html[data-kursat-motion="off"] *::before, html[data-kursat-motion="off"] *::after {
+  animation: none !important; transition: none !important;
+}
+@keyframes pfViewIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.kursat-page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 4px 0 6px; }
+.kursat-page-head-copy { display: grid; gap: 4px; }
+.kursat-page-head-copy p { font-size: 13.5px; max-width: 640px; }
+.kursat-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.kursat-section-head { display: grid; gap: 4px; margin: 8px 0 4px; }
+
+/* ---------- 5. Temel bileşenler ---------- */
+.kursat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); min-width: 0; }
+.kursat-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  padding: var(--pad-sm) var(--pad); border-bottom: 1px solid var(--border);
+}
+.kursat-card-head > div { display: grid; gap: 2px; }
+.kursat-card-head p { font-size: 12.5px; }
+.kursat-card-body { padding: var(--pad); display: grid; gap: var(--gap); }
+
+.kursat-button {
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  height: var(--control-h); padding: 0 12px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--text);
+  font-size: 13px; font-weight: 500; white-space: nowrap; text-decoration: none;
+  transition: background var(--t) ease, border-color var(--t) ease, color var(--t) ease, transform 80ms ease;
+}
+.kursat-button:hover:not(:disabled) { background: var(--surface-3); }
+.kursat-button:active:not(:disabled) { transform: translateY(.5px); }
+.kursat-button:disabled { opacity: .5; }
+.kursat-button--primary { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
+.kursat-button--primary:hover:not(:disabled) { background: var(--primary-hover); border-color: var(--primary-hover); }
+.kursat-button--accent { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+.kursat-button--accent:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.kursat-button--ghost { background: transparent; border-color: transparent; color: var(--text-2); }
+.kursat-button--ghost:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
+.kursat-button--danger { color: var(--danger); border-color: var(--border-strong); }
+.kursat-button--danger:hover:not(:disabled) { background: var(--danger-soft); border-color: var(--danger); }
+.kursat-button--smart { width: 100%; }
+.kursat-button-shortcut { font: 500 11px var(--font); opacity: .7; border: 0; background: none; color: inherit; padding: 0; }
+
+.kursat-input, .kursat-select, .kursat-textarea {
+  width: 100%; border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
+  background: var(--surface); color: var(--text); font-size: 13.5px;
+  transition: border-color var(--t) ease, box-shadow var(--t) ease;
+}
+.kursat-input, .kursat-select { height: var(--control-h); padding: 0 10px; }
+.kursat-select {
+  appearance: none; padding-right: 30px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 10 5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 8px center; background-size: 15px;
+}
+.kursat-select--auto { width: auto; }
+.kursat-textarea { min-height: 96px; padding: 9px 10px; resize: vertical; line-height: 1.55; }
+.kursat-input:hover, .kursat-select:hover, .kursat-textarea:hover { border-color: var(--faint); }
+.kursat-input:focus, .kursat-select:focus, .kursat-textarea:focus { outline: none; border-color: var(--accent); box-shadow: var(--focus); }
+.kursat-input::placeholder, .kursat-textarea::placeholder { color: var(--faint); }
+
+.kursat-field { display: grid; gap: 6px; }
+.kursat-field label { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+.kursat-field small { font-size: 12px; color: var(--muted); }
+.kursat-field--spaced { margin-top: 12px; }
+.kursat-form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.kursat-actions-end { display: flex; justify-content: flex-end; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kursat-actions-end--top { padding: 0 var(--pad) var(--pad); }
+.kursat-inline-actions { display: flex; justify-content: flex-end; gap: 6px; }
+
+.kursat-badge {
+  display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 7px;
+  border-radius: var(--radius-xs); background: var(--surface-3); color: var(--text-2);
+  font-size: 11.5px; font-weight: 500; white-space: nowrap;
+}
+.kursat-badge--accent { background: var(--accent-soft); color: var(--accent); }
+.kursat-badge--success { background: var(--success-soft); color: var(--success); }
+.kursat-badge--warning { background: var(--warning-soft); color: var(--warning); }
+
+.kursat-segmented { display: inline-flex; padding: 2px; gap: 2px; border-radius: var(--radius-sm); background: var(--surface-3); border: 1px solid var(--border); }
+.kursat-segmented button {
+  height: 28px; padding: 0 11px; border: 0; border-radius: 5px; background: transparent;
+  color: var(--muted); font-size: 12.5px; font-weight: 500;
+}
+.kursat-segmented button:hover { color: var(--text); }
+.kursat-segmented button.is-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--border); }
+
+.kursat-toggle { position: relative; width: 34px; height: 20px; border-radius: 999px; border: 0; background: var(--border-strong); padding: 0; flex: 0 0 auto; transition: background var(--t) ease; }
+.kursat-toggle span { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.2); transition: transform var(--t) var(--ease); }
+.kursat-toggle.is-on { background: var(--accent); }
+.kursat-toggle.is-on span { transform: translateX(14px); }
+
+.kursat-progress { height: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.kursat-progress span { display: block; height: 100%; border-radius: inherit; background: var(--text); transition: width 500ms var(--ease); }
+.kursat-progress span.is-warning { background: var(--warning); }
+.kursat-progress span.is-full { background: var(--danger); }
+
+.kursat-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+.kursat-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.kursat-two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); }
+.kursat-list-clean { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.kursat-list-clean li { display: flex; gap: 9px; font-size: 13.5px; color: var(--text-2); }
+.kursat-check { color: var(--success); font-weight: 600; }
+
+.kursat-empty { display: grid; justify-items: center; gap: 8px; padding: 56px 20px; text-align: center; border: 1px dashed var(--border-strong); border-radius: var(--radius); background: var(--surface); }
+.kursat-empty-icon { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 9px; background: var(--surface-3); color: var(--muted); margin-bottom: 4px; }
+.kursat-empty h3 { font-size: 14px; }
+.kursat-empty p { font-size: 13px; max-width: 380px; margin-bottom: 8px; }
+.kursat-empty-mini { font-size: 12.5px; color: var(--muted); padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px dashed var(--border); }
+
+.kursat-form-message { font-size: 12.5px; color: var(--muted); min-height: 0; }
+.kursat-form-message:empty { display: none; }
+.kursat-form-message.is-error { color: var(--danger); }
+.kursat-form-message.is-success { color: var(--success); }
+
+/* ---------- 6. Optimize Et: çalışma alanı ---------- */
+.kursat-forge-layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: var(--gap); align-items: start; }
+.kursat-forge-main { display: grid; gap: var(--gap); min-width: 0; }
+
+.kursat-editor-card { display: flex; flex-direction: column; overflow: hidden; }
+.kursat-editor-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+}
+.kursat-model-bar { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--radius-sm); background: var(--surface-3); border: 1px solid var(--border); }
+.kursat-model-option {
+  display: inline-flex; align-items: baseline; gap: 6px; height: 28px; padding: 0 10px; border: 0; border-radius: 5px;
+  background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 500;
+}
+.kursat-model-option small { font-size: 11px; color: var(--faint); font-weight: 400; }
+.kursat-model-option:hover { color: var(--text); }
+.kursat-model-option.is-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--border); }
+.kursat-model-option.is-active small { color: var(--muted); }
+.kursat-editor-toolbar { display: flex; align-items: center; gap: 2px; }
+.kursat-editor-action {
+  display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px; border: 0; border-radius: 5px;
+  background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 500;
+}
+.kursat-editor-action:hover:not(:disabled) { background: var(--surface-3); color: var(--text); }
+.kursat-editor-action:disabled { opacity: .4; }
+.kursat-editor-action--icon { width: 28px; padding: 0; justify-content: center; }
+.kursat-editor-action svg { width: 15px; height: 15px; }
+.kursat-action-icon { display: inline-grid; }
+
+.kursat-editor-dropzone { position: relative; }
+.kursat-prompt-textarea {
+  display: block; width: 100%; min-height: 240px; max-height: 60vh; resize: vertical;
+  border: 0; background: transparent; padding: 16px 18px; color: var(--text);
+  font-size: 14.5px; line-height: 1.65;
+}
+.kursat-prompt-textarea:focus { outline: none; }
+.kursat-prompt-textarea::placeholder { color: var(--faint); }
+.kursat-drop-overlay {
+  position: absolute; inset: 8px; display: grid; place-items: center; text-align: center;
+  border: 1.5px dashed var(--accent); border-radius: 8px; background: color-mix(in srgb, var(--accent-soft) 92%, transparent);
+  color: var(--accent); opacity: 0; visibility: hidden; transition: opacity var(--t) ease; pointer-events: none;
+}
+.kursat-drop-overlay svg { width: 22px; height: 22px; margin: 0 auto 6px; }
+.kursat-drop-overlay strong { display: block; font-size: 13px; font-weight: 600; }
+.kursat-drop-overlay span { font-size: 12px; }
+.kursat-editor-card.is-dragging .kursat-drop-overlay { opacity: 1; visibility: visible; }
+
+.kursat-starter { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 0 18px 14px; }
+.kursat-starter > span { font-size: 12.5px; color: var(--muted); margin-right: 2px; }
+.kursat-starter-chip {
+  height: 28px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text-2); font-size: 12.5px;
+}
+.kursat-starter-chip:hover { border-color: var(--border-strong); background: var(--surface-2); color: var(--text); }
+
+.kursat-editor-insights {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 9px 18px; border-top: 1px solid var(--border); background: var(--surface-2);
+}
+.kursat-insight-primary { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.kursat-insight-primary strong { font-size: 12.5px; font-weight: 500; color: var(--text-2); }
+.kursat-insight-primary small { font-size: 12.5px; color: var(--muted); }
+.kursat-variable-list { display: flex; gap: 5px; flex-wrap: wrap; }
+.kursat-variable-chip { font: 500 11.5px var(--mono); color: var(--accent); background: var(--accent-soft); border-radius: 4px; padding: 2px 6px; }
+.kursat-variable-empty { font-size: 12px; color: var(--faint); }
+
+.kursat-editor-settings {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; gap: 10px; align-items: end;
+  padding: 12px 18px; border-top: 1px solid var(--border);
+}
+.kursat-compact-field { display: grid; gap: 5px; min-width: 0; }
+.kursat-compact-field > span { font-size: 12px; color: var(--muted); }
+.kursat-compact-field .kursat-select { height: 32px; font-size: 13px; }
+.kursat-policy-stack { display: flex; gap: 6px; }
+.kursat-policy-toggle {
+  display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface);
+  color: var(--text-2); font-size: 12.5px; font-weight: 500; white-space: nowrap;
+}
+.kursat-policy-toggle > span { position: relative; width: 26px; height: 16px; border-radius: 999px; background: var(--border-strong); transition: background var(--t) ease; }
+.kursat-policy-toggle > span i { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: transform var(--t) var(--ease); }
+.kursat-policy-toggle.is-on > span { background: var(--accent); }
+.kursat-policy-toggle.is-on > span i { transform: translateX(10px); }
+.kursat-policy-toggle small { display: none; }
+.kursat-policy-toggle:hover { border-color: var(--faint); }
+
+.kursat-editor-footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  padding: 12px 18px; border-top: 1px solid var(--border);
+}
+.kursat-editor-meta { display: flex; align-items: center; gap: 12px; font-size: 12.5px; color: var(--muted); }
+.kursat-quota-note { color: var(--warning); font-weight: 500; }
+.kursat-quota-note:empty { display: none; }
+.kursat-draft-status { opacity: 0; transition: opacity var(--t) ease; }
+.kursat-draft-status.is-visible { opacity: 1; }
+.kursat-forge-action-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kursat-goal-control { display: inline-flex; padding: 2px; gap: 2px; border-radius: var(--radius-sm); background: var(--surface-3); border: 1px solid var(--border); }
+.kursat-goal-option { height: 30px; padding: 0 11px; border: 0; border-radius: 5px; background: transparent; color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.kursat-goal-option:hover { color: var(--text); }
+.kursat-goal-option.is-active { background: var(--surface); color: var(--text); box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px var(--border); }
+.kursat-forge-button { height: 36px; padding: 0 14px; font-weight: 600; }
+.kursat-forge-button.is-loading .kursat-forge-button-label::after { content: "…"; }
+.kursat-forge-button .kursat-button-shortcut { margin-left: 2px; }
+.kursat-is-pulse, .is-pulse { animation: pfPulse 260ms var(--ease); }
+@keyframes pfPulse { 50% { transform: scale(.97); } }
+
+/* Odak modu: editör tüm ekranı kaplar. */
+body.kursat-editor-focus { overflow: hidden; }
+.kursat-editor-focus::after { content: ""; position: fixed; inset: 0; z-index: 145; background: rgba(10, 10, 12, .55); backdrop-filter: blur(3px); }
+.kursat-editor-focus .kursat-editor-card {
+  position: fixed; z-index: 150; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(1040px, calc(100vw - 48px)); height: min(760px, calc(100vh - 72px)); box-shadow: var(--shadow-pop);
+}
+.kursat-editor-focus .kursat-editor-dropzone { flex: 1; min-height: 0; }
+.kursat-editor-focus .kursat-prompt-textarea { height: 100%; max-height: none; resize: none; }
+.kursat-editor-focus .kursat-starter, .kursat-editor-focus .kursat-editor-settings { display: none; }
+.kursat-focus-exit {
+  position: fixed; right: 20px; top: 16px; z-index: 152; display: none; align-items: center; gap: 8px;
+  height: 34px; padding: 0 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong);
+  background: var(--surface); color: var(--text); font-size: 12.5px; font-weight: 500; box-shadow: var(--shadow-pop);
+}
+.kursat-editor-focus .kursat-focus-exit { display: inline-flex; }
+
+/* Kalite paneli (sağ sütun) */
+.kursat-preflight { position: sticky; top: 72px; overflow: hidden; }
+.kursat-preflight .kursat-card-head { align-items: center; }
+.kursat-score-orbit {
+  --score: 0; position: relative; width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex: 0 0 auto;
+  background: conic-gradient(var(--text) calc(var(--score) * 1%), var(--surface-3) 0);
+  transition: background 400ms var(--ease);
+}
+.kursat-score-orbit::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--surface); }
+.kursat-score-orbit strong, .kursat-score-orbit small { position: relative; }
+.kursat-score-orbit strong { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kursat-score-orbit small { display: none; }
+.kursat-preflight-body { padding: var(--pad-sm) var(--pad); display: grid; gap: 14px; }
+.kursat-preflight-state { display: flex; gap: 10px; align-items: flex-start; }
+.kursat-preflight-state strong { display: block; font-size: 13px; font-weight: 600; }
+.kursat-preflight-state span { font-size: 12.5px; color: var(--muted); }
+.kursat-status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); margin-top: 6px; flex: 0 0 auto; }
+.kursat-status-dot.is-ready { background: var(--success); }
+.kursat-status-dot.is-warning { background: var(--warning); }
+.kursat-issue-list { display: grid; gap: 8px; }
+.kursat-issue { padding: 9px 11px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); }
+.kursat-issue strong { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 1px; }
+.kursat-issue p { font-size: 12.5px; }
+.kursat-structure-checks { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 10px; }
+.kursat-structure-checks span { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--faint); }
+.kursat-structure-checks span i { font-style: normal; width: 14px; text-align: center; }
+.kursat-structure-checks span.is-ready { color: var(--text-2); }
+.kursat-structure-checks span.is-ready i { color: var(--success); }
+.kursat-panel-kicker { display: none; }
+
+/* İşlem durumu */
+.kursat-process { padding: 14px var(--pad); display: grid; gap: 10px; }
+.kursat-process-top { display: flex; justify-content: space-between; align-items: center; }
+.kursat-process-kicker { display: block; font-size: 12px; color: var(--muted); }
+.kursat-process-top strong { font-size: 13.5px; font-weight: 600; }
+.kursat-process-percent { font-size: 12.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.kursat-process-track { height: 4px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.kursat-process-track span { display: block; height: 100%; width: 0; background: var(--accent); transition: width 600ms var(--ease); }
+.kursat-process-steps { display: flex; gap: 14px; font-size: 12px; color: var(--faint); }
+.kursat-process-steps .is-active { color: var(--text); font-weight: 500; }
+.kursat-process-steps .is-done { color: var(--success); }
+
+.kursat-error-state { display: flex; align-items: center; gap: 12px; padding: 14px var(--pad); border-color: color-mix(in srgb, var(--danger) 35%, var(--border)); background: var(--danger-soft); }
+.kursat-error-icon { color: var(--danger); display: grid; }
+.kursat-error-icon svg { width: 20px; height: 20px; }
+.kursat-error-copy { flex: 1; display: grid; gap: 1px; }
+.kursat-error-copy strong { font-size: 13.5px; font-weight: 600; }
+.kursat-error-copy span { font-size: 12.5px; color: var(--text-2); }
+
+/* Sonuç */
+.kursat-result { overflow: hidden; }
+.kursat-result.is-revealed { animation: pfViewIn 260ms var(--ease) both; }
+.kursat-result-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-bottom: 1px solid var(--border); }
+.kursat-metric { padding: 12px var(--pad); display: grid; gap: 2px; border-right: 1px solid var(--border); }
+.kursat-metric:last-child { border-right: 0; }
+.kursat-metric small { font-size: 12px; color: var(--muted); }
+.kursat-metric strong { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kursat-result-tabs { display: flex; gap: 2px; padding: 0 var(--pad); border-bottom: 1px solid var(--border); overflow-x: auto; }
+.kursat-result-tab {
+  height: 40px; padding: 0 10px; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  background: transparent; color: var(--muted); font-size: 13px; font-weight: 500; white-space: nowrap;
+}
+.kursat-result-tab:hover { color: var(--text); }
+.kursat-result-tab.is-active { color: var(--text); border-bottom-color: var(--text); }
+.kursat-result-panel { display: none; padding: var(--pad); }
+.kursat-result-panel.is-active { display: grid; gap: 14px; }
+.kursat-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.kursat-toolbar-left, .kursat-toolbar-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.kursat-result-code, .kursat-diff-content {
+  font: 13px/1.65 var(--mono); color: var(--text); white-space: pre-wrap; word-break: break-word;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px 16px;
+  max-height: 560px; overflow: auto;
+}
+#kursat-save-favorite.is-saved { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.kursat-semantic-changes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.kursat-change-item { display: flex; gap: 10px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.kursat-change-index { font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; padding-top: 1px; }
+.kursat-change-item strong { display: block; font-size: 13px; font-weight: 600; }
+.kursat-change-item p { font-size: 12.5px; }
+.kursat-diff-box { display: grid; gap: 6px; min-width: 0; }
+.kursat-diff-box header { font-size: 12px; font-weight: 500; color: var(--muted); }
+.kursat-diagnostic-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kursat-diagnostic-card { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); display: grid; gap: 2px; }
+.kursat-diagnostic-card span { font-size: 12px; color: var(--muted); }
+.kursat-diagnostic-card strong { font-size: 14px; font-weight: 600; }
+.kursat-diagnostic-card p { font-size: 12.5px; }
+
+/* ---------- 7. Kütüphane: geçmiş, favoriler, karşılaştırma ---------- */
+.kursat-search { position: relative; display: block; }
+.kursat-search svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--faint); width: 15px; height: 15px; }
+.kursat-search .kursat-input { padding-left: 32px; width: 280px; }
+.kursat-table-card { overflow: hidden; }
+.kursat-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.kursat-table th { text-align: left; font-size: 12px; font-weight: 500; color: var(--muted); padding: 10px var(--pad-sm); border-bottom: 1px solid var(--border); background: var(--surface-2); }
+.kursat-table td { padding: 11px var(--pad-sm); border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.kursat-table tr:last-child td { border-bottom: 0; }
+.kursat-table tbody tr:hover td { background: var(--surface-2); }
+.kursat-table-title { color: var(--text); font-weight: 500; }
+.kursat-table-engine { display: block; margin-top: 2px; font-size: 12px; color: var(--faint); }
+.kursat-favorite-card { padding: var(--pad); display: grid; gap: 8px; align-content: start; }
+.kursat-favorite-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kursat-favorite-date { font-size: 12px; color: var(--faint); }
+.kursat-favorite-title { font-size: 14px; font-weight: 600; }
+.kursat-favorite-preview { font-size: 13px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.kursat-favorite-actions { display: flex; gap: 8px; margin-top: 4px; }
+.kursat-compare-card { padding: var(--pad); display: grid; gap: 14px; }
+.kursat-compare-result { display: grid; }
+.kursat-compare-body { padding: var(--pad); display: grid; gap: 14px; }
+.kursat-score-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.kursat-score-card { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); display: grid; gap: 4px; }
+.kursat-score-card small { font-size: 12px; color: var(--muted); }
+.kursat-score-card strong { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+/* ---------- 8. Ayarlar ---------- */
+.kursat-settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--gap); align-items: start; }
+.kursat-settings-card { padding: var(--pad); display: grid; gap: 12px; align-content: start; }
+.kursat-settings-card > h3 { font-size: 14px; }
+.kursat-settings-card > p { font-size: 12.5px; margin-top: -8px; }
+.kursat-setting-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 12px; border-top: 1px solid var(--border); }
+.kursat-setting-row strong { display: block; font-size: 13px; font-weight: 500; }
+.kursat-setting-row span { display: block; font-size: 12.5px; color: var(--muted); }
+.kursat-setting-row .kursat-badge { display: inline-flex; }
+.kursat-setting-stack { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.kursat-setting-stack strong { display: block; font-size: 13px; font-weight: 500; }
+.kursat-setting-stack span { display: block; font-size: 12.5px; color: var(--muted); }
+.kursat-shortcut-list { display: grid; }
+.kursat-shortcut-list > div { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-2); }
+.kursat-shortcut-list > div:first-child { border-top: 0; }
+.kursat-inline-form { display: grid; gap: 10px; }
+.kursat-inline-form[hidden] { display: none; }
+.kursat-usage-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: var(--muted); }
+.kursat-usage-head strong { font-size: 16px; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.kursat-danger-card { border-color: color-mix(in srgb, var(--danger) 28%, var(--border)); }
+.kursat-danger-card h3 { color: var(--danger); }
+
+/* ---------- 9. Pencereler (modal), komut paleti, bildirimler ---------- */
+.kursat-modal-backdrop {
+  position: fixed; inset: 0; z-index: 80; display: none; align-items: flex-start; justify-content: center;
+  padding: 12vh 20px 20px; background: rgba(10, 10, 12, .42);
+}
+.kursat-modal-backdrop.is-open { display: flex; animation: pfFade 140ms ease both; }
+.kursat-modal-backdrop.is-closing { animation: pfFadeOut 140ms ease both; }
+.kursat-modal {
+  width: min(560px, 100%); max-height: min(720px, calc(100vh - 14vh - 20px)); overflow: auto;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-pop);
+  animation: pfModalIn 180ms var(--ease) both;
+}
+.kursat-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.kursat-modal-head h2 { font-size: 15px; }
+.kursat-modal-head .kursat-icon-button { width: 28px; height: 28px; border: 0; }
+.kursat-modal-body { padding: 18px; display: grid; gap: 14px; }
+.kursat-modal-foot { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--border); }
+.kursat-modal-copy, .kursat-confirm-copy { font-size: 13.5px; color: var(--text-2); }
+@keyframes pfFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pfFadeOut { to { opacity: 0; } }
+@keyframes pfModalIn { from { opacity: 0; transform: translateY(6px) scale(.99); } to { opacity: 1; transform: none; } }
+
+.kursat-command { width: min(600px, 100%); }
+.kursat-command-search { padding: 4px; border-bottom: 1px solid var(--border); }
+.kursat-command-search input { width: 100%; height: 44px; border: 0; background: transparent; padding: 0 12px; font-size: 14.5px; color: var(--text); }
+.kursat-command-search input:focus { outline: none; }
+.kursat-command-list { padding: 6px; display: grid; gap: 1px; max-height: 360px; overflow: auto; }
+.kursat-command-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 10px;
+  border: 0; border-radius: 6px; background: transparent; text-align: left;
+}
+.kursat-command-item strong { display: block; font-size: 13px; font-weight: 500; }
+.kursat-command-item span { display: block; font-size: 12px; color: var(--muted); }
+.kursat-command-item kbd { opacity: 0; }
+.kursat-command-item.is-current, .kursat-command-item:hover { background: var(--surface-3); }
+.kursat-command-item.is-current kbd { opacity: 1; }
+
+.kursat-toast-stack { position: fixed; right: 18px; bottom: 18px; z-index: 120; display: grid; gap: 8px; }
+.kursat-toast {
+  min-width: 260px; max-width: 360px; padding: 11px 14px; border-radius: 9px;
+  background: var(--primary); color: var(--on-primary); box-shadow: var(--shadow-pop); font-size: 13px;
+  animation: pfToastIn 180ms var(--ease) both;
+}
+.kursat-toast strong { display: block; font-weight: 600; }
+.kursat-toast span { display: block; opacity: .72; font-size: 12.5px; margin-top: 1px; }
+.kursat-toast.is-leaving { animation: pfFadeOut 160ms ease both; }
+@keyframes pfToastIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* Planlar ve 2FA penceresi */
+.kursat-plan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.kursat-plan-card { padding: 16px; border: 1px solid var(--border); border-radius: var(--radius); display: grid; gap: 12px; align-content: start; }
+.kursat-plan-card.is-current { border-color: var(--text); }
+.kursat-plan-card h3 { font-size: 14px; }
+.kursat-plan-price { display: block; margin-top: 2px; font-size: 22px; font-weight: 600; letter-spacing: -.02em; }
+.kursat-plan-card ul { margin: 0; padding-left: 17px; display: grid; gap: 5px; font-size: 13px; color: var(--text-2); }
+.kursat-qr { display: grid; place-items: center; width: max-content; margin: 0 auto; padding: 10px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius); }
+.kursat-qr img { display: block; width: 176px; height: 176px; image-rendering: pixelated; }
+.kursat-secret { padding: 9px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); font: 13px var(--mono); text-align: center; word-break: break-all; }
+
+/* ---------- 10. Oluştur: atölye, akışlar, yapı taşları ---------- */
+.kursat-route-card, .kursat-flow-card, .kursat-block-card {
+  display: grid; gap: 6px; align-content: start; text-align: left; padding: 16px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text);
+  transition: border-color var(--t) ease, background var(--t) ease;
+}
+.kursat-route-card:hover, .kursat-flow-card:hover, .kursat-block-card:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.kursat-route-card.is-selected, .kursat-flow-card.is-selected, .kursat-block-card.is-selected { border-color: var(--text); }
+.kursat-route-card h3, .kursat-flow-card h3, .kursat-block-card h3 { font-size: 13.5px; }
+.kursat-route-card p, .kursat-flow-card p, .kursat-block-card p { font-size: 12.5px; }
+.kursat-route-icon { width: 28px; height: 28px; display: grid; place-items: center; border-radius: 7px; background: var(--surface-3); color: var(--text-2); margin-bottom: 4px; }
+.kursat-builder { overflow: hidden; }
+.kursat-builder.is-opening { animation: pfViewIn 240ms var(--ease) both; }
+.kursat-builder-preview { display: grid; gap: 6px; }
+.kursat-builder-preview header { font-size: 12px; font-weight: 500; color: var(--muted); }
+.kursat-builder-preview pre {
+  font: 12.5px/1.6 var(--mono); white-space: pre-wrap; word-break: break-word; color: var(--text);
+  padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); min-height: 80px;
+}
+.kursat-composer { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); align-items: start; }
+.kursat-composer-stack { display: grid; gap: 10px; }
+.kursat-composer-stack--padded { padding: var(--pad); }
+.kursat-composer-item { display: grid; gap: 6px; }
+.kursat-composer-item-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kursat-composer-item-head strong { font-size: 13px; font-weight: 600; }
+.kursat-flow-steps { display: grid; gap: 6px; }
+.kursat-flow-step { display: flex; align-items: flex-start; gap: 10px; padding: 9px 11px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.kursat-flow-step input { margin-top: 3px; accent-color: var(--accent); }
+.kursat-flow-step strong { display: block; font-size: 12.5px; font-weight: 600; }
+.kursat-flow-step span span { font-size: 13px; color: var(--text-2); }
+
+/* Rehberli oluşturucu: solda sorular, sağda canlı prompt */
+.kursat-builder-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
+.kursat-builder-form { padding: var(--pad); display: grid; gap: 16px; align-content: start; border-right: 1px solid var(--border); }
+.kursat-builder-side { padding: var(--pad); display: grid; gap: 14px; align-content: start; position: sticky; top: 56px; }
+.kursat-field-hint { font-size: 12px; color: var(--muted); }
+.kursat-live-meter { display: grid; gap: 6px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.kursat-live-meter > div:first-child { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: var(--muted); }
+.kursat-live-meter strong { font-size: 16px; color: var(--text); font-weight: 600; font-variant-numeric: tabular-nums; }
+.kursat-live-meter p { font-size: 12.5px; }
+.kursat-step-list { display: grid; gap: 6px; }
+.kursat-step { display: flex; align-items: center; gap: 8px; }
+.kursat-step-index { width: 22px; flex: 0 0 auto; text-align: center; font-size: 12px; color: var(--faint); font-variant-numeric: tabular-nums; }
+.kursat-step .kursat-input { height: 34px; }
+.kursat-step-actions { display: flex; gap: 1px; flex: 0 0 auto; }
+.kursat-add-step { justify-self: start; }
+.kursat-blocks-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: var(--gap); align-items: start; }
+.kursat-block-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.kursat-block-card { padding: 12px 14px; gap: 4px; }
+.kursat-block-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.kursat-block-state { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.kursat-block-card.is-selected .kursat-block-state { color: var(--success); }
+.kursat-composer-col { display: grid; gap: var(--gap); position: sticky; top: 72px; }
+.kursat-composer-item .kursat-textarea { min-height: 72px; }
+
+/* ---------- 11. Prompt analizi ---------- */
+.kursat-health-entry { padding: var(--pad); display: grid; gap: 12px; }
+.kursat-health-input { min-height: 160px; }
+.kursat-analysis { display: grid; gap: var(--gap); }
+.kursat-analysis:empty { display: none; }
+.kursat-analysis-head { display: flex; align-items: center; gap: 18px; padding: var(--pad); }
+.kursat-score-orbit--lg { width: 72px; height: 72px; }
+.kursat-score-orbit--lg::before { inset: 6px; }
+.kursat-score-orbit--lg strong { font-size: 22px; }
+.kursat-analysis-summary { display: grid; gap: 4px; }
+.kursat-analysis-summary p { font-size: 13.5px; }
+.kursat-analysis-meta { display: flex; gap: 6px; }
+.kursat-criteria-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--gap); }
+.kursat-criterion { padding: 14px 16px; display: grid; gap: 8px; align-content: start; }
+.kursat-criterion header { display: flex; align-items: baseline; justify-content: space-between; }
+.kursat-criterion-score { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kursat-criterion-score small { font-size: 12px; color: var(--faint); font-weight: 500; }
+.kursat-criterion-status { font-size: 12px; font-weight: 500; }
+.kursat-criterion.is-good .kursat-progress span { background: var(--success); }
+.kursat-criterion.is-good .kursat-criterion-status { color: var(--success); }
+.kursat-criterion.is-improve .kursat-progress span { background: var(--warning); }
+.kursat-criterion.is-improve .kursat-criterion-status { color: var(--warning); }
+.kursat-criterion.is-missing .kursat-progress span { background: var(--danger); }
+.kursat-criterion.is-missing .kursat-criterion-status { color: var(--danger); }
+.kursat-criterion p { font-size: 13px; color: var(--text-2); }
+.kursat-criterion-fix { display: grid; gap: 2px; padding: 9px 11px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); }
+.kursat-criterion-fix strong { font-size: 12px; font-weight: 600; color: var(--muted); }
+.kursat-criterion-fix span { font-size: 13px; color: var(--text); }
+.kursat-analysis-card { padding: var(--pad); display: grid; gap: 10px; align-content: start; }
+.kursat-analysis-card p { font-size: 13px; }
+.kursat-analysis-list { margin: 0; padding-left: 18px; display: grid; gap: 7px; font-size: 13.5px; color: var(--text-2); }
+.kursat-lesson { padding: 14px var(--pad); display: grid; gap: 4px; border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; }
+.kursat-lesson span { font-size: 12px; font-weight: 600; color: var(--accent); }
+.kursat-lesson p { font-size: 14px; color: var(--text); }
+.kursat-analysis-title { font-size: 14px; }
+
+/* ---------- 12. Duyarlı tasarım ---------- */
+@media (max-width: 1180px) {
+  .kursat-forge-layout { grid-template-columns: 1fr; }
+  .kursat-preflight { position: static; }
+  .kursat-editor-settings { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .kursat-policy-stack { grid-column: 1 / -1; }
+  .kursat-command-button { min-width: 0; }
+  .kursat-command-button span:nth-of-type(1) { display: none; }
+}
+@media (max-width: 900px) {
+  .kursat-app { grid-template-columns: 1fr; }
+  .kursat-sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 90; width: 260px;
+    transform: translateX(-100%); transition: transform 200ms var(--ease);
+  }
+  .kursat-sidebar.is-open { transform: none; box-shadow: var(--shadow-pop); }
+  .kursat-sidebar-close { display: grid; }
+  body.kursat-sidebar-open { overflow: hidden; }
+  body.kursat-sidebar-open .kursat-sidebar-backdrop { display: block; position: fixed; inset: 0; z-index: 85; border: 0; background: rgba(10, 10, 12, .45); }
+  .kursat-mobile-menu { display: inline-grid; place-items: center; width: 32px; height: 32px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); }
+  .kursat-topbar { padding: 0 16px; }
+  .kursat-content { padding: 18px 16px 64px; }
+  .kursat-page-context small { display: none; }
+  .kursat-workspace-status span { display: none; }
+  .kursat-user-button span:not(.kursat-avatar) { display: none; }
+  .kursat-grid-3, .kursat-grid-2, .kursat-two-col, .kursat-settings-grid, .kursat-composer, .kursat-semantic-changes, .kursat-diagnostic-grid, .kursat-plan-grid, .kursat-builder-layout, .kursat-blocks-layout { grid-template-columns: 1fr; }
+  .kursat-builder-form { border-right: 0; border-bottom: 1px solid var(--border); }
+  .kursat-criteria-grid { grid-template-columns: 1fr; }
+  .kursat-analysis-head { flex-direction: column; align-items: flex-start; }
+  .kursat-builder-side, .kursat-composer-col { position: static; }
+  .kursat-result-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kursat-metric:nth-child(2) { border-right: 0; }
+  .kursat-metric:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+  .kursat-editor-settings { grid-template-columns: 1fr; }
+  .kursat-page-head { flex-direction: column; align-items: flex-start; }
+  .kursat-search .kursat-input { width: 100%; }
+  .kursat-table { font-size: 12.5px; }
+}
+@media (max-width: 560px) {
+  .kursat-editor-top { flex-direction: column; align-items: stretch; }
+  .kursat-model-bar { overflow-x: auto; }
+  .kursat-model-option small { display: none; }
+  .kursat-forge-action-row, .kursat-goal-control { width: 100%; }
+  .kursat-goal-option { flex: 1; }
+  .kursat-forge-button { width: 100%; }
+  .kursat-score-grid { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

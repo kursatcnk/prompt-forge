@@ -184,12 +184,28 @@
     PF.closeBackdrop(document.querySelector("#kursat-panel-backdrop"));
   }
 
+  // Kota dolduysa Optimize Et butonunu kilitle ve yenilenme zamanını editörün altında göster.
+  function applyQuota() {
+    const usage = account()?.usage;
+    if (!usage) return;
+    const exhausted = usage.used >= usage.limit;
+    PF.state.quotaExhausted = exhausted;
+    const button = document.querySelector("#kursat-forge-button");
+    const note = document.querySelector("#kursat-quota-note");
+    if (button && !button.classList.contains("is-loading")) button.disabled = exhausted;
+    if (button) button.title = exhausted ? "Aylık kotan doldu" : "Ctrl + Enter";
+    if (note) note.textContent = exhausted
+      ? `Aylık ${usage.limit} hakkının tamamını kullandın. Kotan ${PF.formatDate(usage.resetsAt)} tarihinde yenilenecek.`
+      : usage.limit - usage.used <= 5 ? `Bu ay ${usage.limit - usage.used} hakkın kaldı.` : "";
+  }
+
   function renderAll() {
     renderAccountCard();
     renderSecurityCard();
     renderPlanCard();
     renderSidebarPlan();
     renderEngineStatus();
+    applyQuota();
   }
 
   document.querySelector("#kursat-open-plans")?.addEventListener("click", openPlans);
@@ -200,5 +216,6 @@
     account().usage = event.detail;
     renderPlanCard();
     renderSidebarPlan();
+    applyQuota();
   });
 })();

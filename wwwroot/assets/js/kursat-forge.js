@@ -173,7 +173,7 @@
     const checks = {
       objective: raw.length >= 28 && /\b(yap|oluştur|üret|incele|analiz|yaz|dönüştür|karşılaştır|optimize|tasarla|build|create|analyze|write|review|compare|generate)\w*/i.test(raw),
       context: raw.length >= 120 || /(bağlam|context|mevcut|şu anda|hedef kitle|arka plan|background)/i.test(raw),
-      output: /(çıktı|output|format|json|liste|tablo|kod|dosya|cevap|sonuç|markdown|schema)/i.test(raw),
+      output: /(çıktı|output|format|biçim|json|liste|madde|tablo|kod|dosya|cevap|sonuç|markdown|schema|paragraf|cümle|kelime|karakter|başlık|hashtag|e-posta|özet|rapor|slayt|paragraph|bullet|words)/i.test(raw),
       constraints: requirements.length > 0,
       quality: /(kalite|başarı|kriter|doğrula|test|kontrol|quality|acceptance|verify|validation)/i.test(raw),
       examples: /(örnek|example|örneğin|input:|output:|girdi:|çıktı:)/i.test(raw)
@@ -233,25 +233,43 @@
       ].filter(Boolean).join("\n");
     }
 
-    if (goal === "quality") {
-      return [
-        `GÖREV\n${objective}`,
-        rest ? `BAĞLAM\n${rest}` : "",
-        requirements.length ? `ZORUNLU KURALLAR\n${requirements.map(item => `- ${item}`).join("\n")}` : "",
-        analysis.variables.length ? `DEĞİŞKENLER\n${analysis.variables.map(item => `- {{${item}}}: Çalıştırma anında sağlanacak değer.`).join("\n")}` : "",
-        `YAKLAŞIM\n${[useCaseProfiles[useCaseKey].instruction, ...policyLines].map(item => `- ${item}`).join("\n")}`,
-        `ÇIKTI\n${(outputLines.length ? outputLines : [formatProfiles.auto]).map(item => `- ${item}`).join("\n")}`,
-        `KALİTE ÖLÇÜTLERİ\n${qualityCriteria[useCaseKey].map(item => `- ${item}`).join("\n")}`,
-        "Teslim etmeden önce tüm kuralları ve ölçütleri karşıladığını kontrol et."
-      ].filter(Boolean).join("\n\n");
-    }
+    const bullets = items => items.map(item => `- ${item}`).join("\n");
+    // Bölümler: [başlık, Claude için XML etiketi, içerik]. Hangi söz dizimiyle yazılacağına renderForModel karar verir.
+    const sections = goal === "quality"
+      ? [
+          ["Bağlam", "context", rest],
+          ["Görev", "instructions", objective],
+          ["Zorunlu kurallar", "constraints", requirements.length ? bullets(requirements) : ""],
+          ["Değişkenler", "variables", analysis.variables.length ? bullets(analysis.variables.map(item => `{{${item}}}: Çalıştırma anında sağlanacak değer.`)) : ""],
+          ["Yaklaşım", "approach", bullets([useCaseProfiles[useCaseKey].instruction, ...policyLines])],
+          ["Çıktı biçimi", "output_format", bullets(outputLines.length ? outputLines : [formatProfiles.auto])],
+          ["Kalite ölçütleri", "quality_criteria", bullets([...qualityCriteria[useCaseKey], "Teslim etmeden önce tüm kuralları ve ölçütleri karşıladığını kontrol et."])]
+        ]
+      : [
+          ["Bağlam", "context", rest],
+          ["Görev", "instructions", objective],
+          ["Kurallar", "constraints", requirements.length ? bullets(requirements) : ""],
+          ["Çıktı", "output_format", outputLines.length || policyLines.length ? bullets([...outputLines, ...policyLines]) : ""]
+        ];
+    return renderForModel(model, sections.filter(section => section[2]));
+  }
 
-    return [
-      `GÖREV\n${objective}`,
-      rest ? `BAĞLAM\n${rest}` : "",
-      requirements.length ? `KURALLAR\n${requirements.map(item => `- ${item}`).join("\n")}` : "",
-      outputLines.length || policyLines.length ? `ÇIKTI\n${[...outputLines, ...policyLines].map(item => `- ${item}`).join("\n")}` : ""
-    ].filter(Boolean).join("\n\n");
+  // Her hedef model, kendi sağlayıcısının önerdiği prompt biçimiyle yazılır; böylece GPT ve Claude sonucu gerçekten farklı görünür.
+  function renderForModel(model, sections) {
+    const task = sections.find(section => section[1] === "instructions");
+    const others = sections.filter(section => section !== task);
+    switch (model) {
+      case "claude": // Anthropic: bölümler XML etiketleriyle ayrılır, bağlam önce gelir.
+        return sections.map(([, tag, body]) => `<${tag}>\n${body}\n</${tag}>`).join("\n\n");
+      case "gpt": // OpenAI: Markdown başlıkları, görev en üstte.
+        return [task, ...others].filter(Boolean).map(([title, , body]) => `## ${title}\n${body}`).join("\n\n");
+      case "gemini": // Google: etiketli satırlar, asıl görev bağlamdan sonra en sonda.
+        return [...others, task].filter(Boolean).map(([title, , body]) => body.includes("\n") ? `${title}:\n${body}` : `${title}: ${body}`).join("\n\n");
+      case "deepseek": // DeepSeek: başlıksız, doğrudan paragraflar; görev ilk cümlede.
+        return [task, ...others].filter(Boolean).map(([, , body]) => body).join("\n\n");
+      default: // Evrensel: modele özgü söz dizimi olmadan büyük harfli sade başlıklar.
+        return [task, ...others].filter(Boolean).map(([title, , body]) => `${title.toLocaleUpperCase("tr-TR")}\n${body}`).join("\n\n");
+    }
   }
 
   function renderPreflight(analysis) {
@@ -326,6 +344,8 @@
   function updatePromptMeta(options = {}) {
     const analysis = analyzePrompt(promptInput.value);
     document.querySelector("#kursat-token-count").textContent = `${analysis.tokens} tahmini token`;
+    // Örnek kısayolları sadece editör boşken göster; yazmaya başlayınca yer kaplamasın.
+    document.querySelector("#kursat-starter")?.classList.toggle("kursat-hidden", Boolean(promptInput.value.trim()));
     renderPreflight(analysis);
     renderEditorInsights(analysis);
     if (PF.state.draftEnabled) {
@@ -385,7 +405,8 @@
 
   function setForgeLoading(isLoading) {
     if (!forgeButton) return;
-    forgeButton.disabled = isLoading;
+    // Kota dolduysa işlem bittikten sonra da buton kilitli kalır.
+    forgeButton.disabled = isLoading || Boolean(PF.state.quotaExhausted);
     forgeButton.classList.toggle("is-loading", isLoading);
     if (forgeButtonLabel) forgeButtonLabel.textContent = isLoading ? "İşleniyor" : "Optimize Et";
   }
@@ -396,6 +417,10 @@
     const text = promptInput.value.trim();
     if (!text) { PF.toast("Prompt boş", "Optimize etmek için önce bir prompt yaz."); promptInput.focus(); return; }
     if (forging) return;
+    if (PF.state.quotaExhausted) {
+      showForgeError("Aylık kota doldu", document.querySelector("#kursat-quota-note")?.textContent || "Kotan yenilenene kadar optimizasyon yapılamaz.");
+      return;
+    }
     forging = true;
     setForgeLoading(true);
     beginProcess();
@@ -426,6 +451,8 @@
       });
       if (!optimize.ok) {
         const quota = optimize.status === 429;
+        // Kota dolduysa sunucunun gönderdiği güncel kullanım bilgisiyle butonu kilitle.
+        if (quota && optimize.data?.usage) document.dispatchEvent(new CustomEvent("kursat:usage-changed", { detail: optimize.data.usage }));
         showForgeError(quota ? "Aylık kota doldu" : "Optimizasyon tamamlanamadı", optimize.data?.message || "Bağlantını kontrol edip tekrar deneyebilirsin.");
         return;
       }
@@ -712,29 +739,6 @@
     updateFavoriteButton(record);
     document.dispatchEvent(new CustomEvent("kursat:data-changed"));
     PF.toast(exists ? "Favoriden kaldırıldı" : "Favorilere eklendi");
-  });
-
-  document.querySelector("#kursat-health-analyze")?.addEventListener("click", () => {
-    const text = document.querySelector("#kursat-health-input").value.trim();
-    const host = document.querySelector("#kursat-health-results");
-    if (!text) { PF.toast("Prompt boş"); return; }
-    const analysis = analyzePrompt(text);
-    const criteria = [
-      ["Netlik", Math.min(100, analysis.score + 2)],
-      ["Bağlam", text.length > 180 ? 86 : 58],
-      ["Kısıtlar", analysis.requirements.length ? Math.min(96, 65 + analysis.requirements.length * 5) : 48],
-      ["Çıktı tanımı", /(çıktı|output|format|json|liste|tablo|kod)/i.test(text) ? 90 : 52],
-      ["Özgüllük", text.length > 120 ? 82 : 60],
-      ["Verimlilik", analysis.issues.some(v => v[0] === "Tekrar var") ? 60 : 88]
-    ];
-    host.innerHTML = `<div class="kursat-score-grid">${criteria.slice(0,3).map(([name,score]) => `<div class="kursat-score-card"><small>${name}</small><strong>${score}</strong><div class="kursat-progress"><span style="width:${score}%"></span></div></div>`).join("")}</div><div class="kursat-grid-3">${criteria.slice(3).map(([name,score]) => `<div class="kursat-score-card"><small>${name}</small><strong>${score}</strong><div class="kursat-progress"><span style="width:${score}%"></span></div></div>`).join("")}</div>${analysis.issues.length ? `<article class="kursat-card kursat-analysis-card"><h3 class="kursat-analysis-title">İyileştirilebilecek noktalar</h3><div class="kursat-issue-list">${analysis.issues.map(v => `<div class="kursat-issue"><strong>${PF.escape(v[0])}</strong><p>${PF.escape(v[1])}</p></div>`).join("")}</div></article>` : ""}`;
-    if (PF.state.motion === "on") {
-      host.querySelectorAll(".kursat-progress span").forEach((bar, index) => {
-        const width = bar.style.width;
-        bar.style.width = "0%";
-        setTimeout(() => { bar.style.width = width; }, 60 + index * 45);
-      });
-    }
   });
 
   document.addEventListener("kursat:load-record", event => loadRecord(event.detail));
