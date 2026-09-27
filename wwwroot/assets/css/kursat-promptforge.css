@@ -1,0 +1,769 @@
+:root{
+  --kursat-bg:#f5f6f8;
+  --kursat-surface:#ffffff;
+  --kursat-surface-soft:#f8f9fb;
+  --kursat-ink:#17191c;
+  --kursat-muted:#69707b;
+  --kursat-faint:#98a0ab;
+  --kursat-line:#e3e6ea;
+  --kursat-line-strong:#d5d9df;
+  --kursat-sidebar:#14171a;
+  --kursat-sidebar-soft:#1b1f23;
+  --kursat-sidebar-text:#f4f5f6;
+  --kursat-sidebar-muted:#929aa5;
+  --kursat-accent:#e66b35;
+  --kursat-accent-soft:#fff1e9;
+  --kursat-accent-line:#f2b08d;
+  --kursat-success:#167a55;
+  --kursat-warning:#9b6617;
+  --kursat-danger:#b74646;
+  --kursat-shadow:0 12px 34px rgba(20,23,26,.07);
+  --kursat-radius:14px;
+  --kursat-radius-sm:10px;
+  --kursat-sidebar-width:252px;
+  --kursat-topbar-height:64px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  color:var(--kursat-ink);
+  background:var(--kursat-bg);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;min-height:100vh;background:var(--kursat-bg);color:var(--kursat-ink);font-size:15px;line-height:1.5}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+a{color:inherit}
+svg{display:block}
+::selection{background:#ffe0cf;color:#101214}
+.kursat-hidden{display:none}
+.kursat-app{min-height:100vh}
+.kursat-sidebar{position:fixed;inset:0 auto 0 0;width:var(--kursat-sidebar-width);background:var(--kursat-sidebar);color:var(--kursat-sidebar-text);padding:18px 14px;display:flex;flex-direction:column;z-index:40;border-right:1px solid #252a2f}
+.kursat-brand-row{display:flex;align-items:center;justify-content:space-between;min-height:42px;padding:0 4px 16px;border-bottom:1px solid #24292e}
+.kursat-brand{display:inline-flex;align-items:center;gap:10px;border:0;background:transparent;color:#fff;padding:4px;text-decoration:none;border-radius:9px}
+.kursat-brand:hover{background:rgba(255,255,255,.04)}
+.kursat-brand img{width:31px;height:31px}
+.kursat-brand-copy{display:grid;line-height:1.05;text-align:left}
+.kursat-brand-copy strong{font-size:15px;font-weight:760;letter-spacing:-.025em}
+.kursat-brand-copy small{margin-top:4px;font-size:10.5px;color:var(--kursat-sidebar-muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.kursat-sidebar-close{display:none;width:34px;height:34px;border:1px solid #30353b;background:#1a1e22;color:#cdd2d8;border-radius:9px;align-items:center;justify-content:center}
+.kursat-sidebar-close svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8}
+.kursat-nav{padding-top:18px;display:grid;gap:18px;overflow:auto}
+.kursat-nav-group{display:grid;gap:5px}
+.kursat-nav-label{margin:0 8px 4px;color:#68717c;font-size:10px;font-weight:750;letter-spacing:.12em;text-transform:uppercase}
+.kursat-nav-button{width:100%;display:flex;align-items:center;gap:11px;border:0;background:transparent;color:#bec5cd;padding:10px 10px;border-radius:10px;text-align:left;transition:background .16s ease,color .16s ease,transform .16s ease}
+.kursat-nav-button:hover{background:#1b2025;color:#fff}
+.kursat-nav-button.is-active{background:#22272d;color:#fff}
+.kursat-nav-button.is-active .kursat-nav-icon{color:var(--kursat-accent)}
+.kursat-nav-icon{width:18px;height:18px;color:#8f98a3;display:grid;place-items:center;flex:0 0 auto}
+.kursat-nav-icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.kursat-nav-button span:last-child{font-size:13.5px;font-weight:620}
+.kursat-sidebar-footer{margin-top:auto;padding:16px 7px 2px;border-top:1px solid #24292e;color:#8f98a3}
+.kursat-sidebar-footer strong{display:block;color:#d9dde2;font-size:12px;margin-bottom:3px}
+.kursat-sidebar-footer p{margin:0;font-size:11px;line-height:1.55}
+.kursat-main{min-height:100vh;margin-left:var(--kursat-sidebar-width)}
+.kursat-topbar{height:var(--kursat-topbar-height);position:sticky;top:0;z-index:30;background:rgba(245,246,248,.96);border-bottom:1px solid var(--kursat-line);display:flex;align-items:center;justify-content:space-between;padding:0 28px}
+.kursat-topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.kursat-mobile-menu{display:none;width:38px;height:38px;border:1px solid var(--kursat-line);background:#fff;border-radius:10px;align-items:center;justify-content:center}
+.kursat-mobile-menu svg{width:19px;height:19px;fill:none;stroke:#39404a;stroke-width:1.8}
+.kursat-page-context{display:grid;gap:1px}
+.kursat-page-context small{font-size:10px;font-weight:750;letter-spacing:.1em;text-transform:uppercase;color:#9aa1ab}
+.kursat-page-context strong{font-size:14px;font-weight:720;letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kursat-topbar-actions{display:flex;align-items:center;gap:8px}
+.kursat-command-button,.kursat-user-button{height:38px;border:1px solid var(--kursat-line);background:#fff;border-radius:10px;color:#343a42;display:flex;align-items:center;gap:8px;padding:0 12px;box-shadow:0 1px 0 rgba(20,23,26,.02)}
+.kursat-command-button:hover,.kursat-user-button:hover{border-color:#cdd2d8;background:#fbfbfc}
+.kursat-command-button svg{width:16px;height:16px;fill:none;stroke:#69717c;stroke-width:1.7}
+.kursat-key{font-size:10px;color:#8d949e;border:1px solid #e0e3e7;background:#f6f7f8;border-radius:5px;padding:1px 5px}
+.kursat-avatar{width:23px;height:23px;border-radius:7px;background:#1c2024;color:#fff;display:grid;place-items:center;font-size:10px;font-weight:750}
+.kursat-content{width:min(1440px,100%);margin:0 auto;padding:36px 34px 64px}
+.kursat-view{display:none;animation:kursatViewIn .18s ease both}
+.kursat-view.is-active{display:block}
+@keyframes kursatViewIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.kursat-page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:24px}
+.kursat-page-head-copy{max-width:760px}
+.kursat-eyebrow{display:block;margin-bottom:7px;color:#8a929d;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.kursat-page-head h1{margin:0;font-size:31px;line-height:1.15;letter-spacing:-.035em;font-weight:760}
+.kursat-page-head p{margin:9px 0 0;color:var(--kursat-muted);font-size:14.5px;max-width:680px}
+.kursat-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+.kursat-button{border:1px solid var(--kursat-line-strong);background:#fff;color:#2b3037;border-radius:10px;min-height:40px;padding:0 14px;display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:670;font-size:13.5px;transition:transform .15s ease,background .15s ease,border-color .15s ease,box-shadow .15s ease}
+.kursat-button:hover{transform:translateY(-1px);border-color:#bdc3ca;box-shadow:0 7px 18px rgba(20,23,26,.05)}
+.kursat-button--primary{background:#1b1f23;color:#fff;border-color:#1b1f23}
+.kursat-button--primary:hover{background:#101316;border-color:#101316}
+.kursat-button--accent{background:var(--kursat-accent);border-color:var(--kursat-accent);color:#fff}
+.kursat-button--accent:hover{background:#d95f2d;border-color:#d95f2d}
+.kursat-button--danger{color:#a43b3b;border-color:#e4c0c0;background:#fff}
+.kursat-button--ghost{border-color:transparent;background:transparent;color:#66707a;box-shadow:none}
+.kursat-button--ghost:hover{background:#f0f2f4;border-color:transparent;box-shadow:none}
+.kursat-icon-button{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--kursat-line);background:#fff;border-radius:10px;color:#656d77}
+.kursat-icon-button:hover{color:#20252a;border-color:#cbd0d6}
+.kursat-icon-button svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.kursat-card{background:var(--kursat-surface);border:1px solid var(--kursat-line);border-radius:var(--kursat-radius);box-shadow:0 1px 0 rgba(20,23,26,.015)}
+.kursat-card-head{padding:17px 18px;border-bottom:1px solid var(--kursat-line);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.kursat-card-head h2,.kursat-card-head h3{margin:0;font-size:14px;font-weight:730;letter-spacing:-.015em}
+.kursat-card-head p{margin:3px 0 0;font-size:12px;color:#89919b}
+.kursat-model-bar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;padding:10px;background:#f4f5f7;border:1px solid var(--kursat-line);border-radius:12px;margin-bottom:14px}
+.kursat-model-option{border:1px solid transparent;background:transparent;border-radius:9px;min-height:50px;padding:7px 10px;display:flex;align-items:center;gap:9px;text-align:left;color:#4f5761;transition:.15s ease}
+.kursat-model-option:hover{background:#fff;border-color:#e4e6e9}
+.kursat-model-option.is-active{background:#fff;border-color:#d9dde2;box-shadow:0 2px 10px rgba(20,23,26,.04);color:#15191d}
+.kursat-model-glyph{width:28px;height:28px;border-radius:8px;background:#eef0f3;color:#5f6772;display:grid;place-items:center;font-size:10px;font-weight:800;flex:0 0 auto}
+.kursat-model-option.is-active .kursat-model-glyph{background:var(--kursat-accent-soft);color:#bb5128}
+.kursat-model-copy{display:grid;gap:1px;min-width:0}
+.kursat-model-copy strong{font-size:12.8px;font-weight:720}
+.kursat-model-copy small{font-size:10.5px;color:#9299a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kursat-forge-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:16px;align-items:start}
+.kursat-editor-card{overflow:hidden}
+.kursat-editor-toolbar{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.kursat-editor-action{border:0;background:transparent;color:#7b838e;padding:6px 8px;border-radius:7px;font-size:11.5px;font-weight:620}
+.kursat-editor-action:hover{background:#f1f3f5;color:#31373e}
+.kursat-prompt-textarea{width:100%;min-height:360px;resize:vertical;border:0;outline:0;padding:20px 20px 24px;background:#fff;color:#1f2429;font-family:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;font-size:14px;line-height:1.75}
+.kursat-prompt-textarea::placeholder{color:#b1b7bf}
+.kursat-editor-footer{min-height:54px;border-top:1px solid var(--kursat-line);display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 12px 10px 16px;background:#fbfbfc}
+.kursat-token-count{font-size:11.5px;color:#8b929c}
+.kursat-goal-control{display:flex;align-items:center;gap:3px;padding:3px;background:#eef0f2;border-radius:9px}
+.kursat-goal-option{border:0;background:transparent;color:#717984;border-radius:7px;padding:7px 10px;font-size:11.5px;font-weight:660}
+.kursat-goal-option.is-active{background:#fff;color:#1d2227;box-shadow:0 1px 4px rgba(20,23,26,.08)}
+.kursat-forge-action-row{display:flex;align-items:center;gap:8px}
+.kursat-preflight{overflow:hidden;position:sticky;top:calc(var(--kursat-topbar-height) + 20px)}
+.kursat-preflight-body{padding:18px}
+.kursat-preflight-state{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.kursat-status-dot{width:9px;height:9px;border-radius:50%;background:#c7cbd0}
+.kursat-status-dot.is-ready{background:var(--kursat-success)}
+.kursat-status-dot.is-warning{background:#d09b3c}
+.kursat-preflight-state strong{font-size:13px}
+.kursat-preflight-state span{display:block;font-size:11px;color:#9299a3;margin-top:1px}
+.kursat-issue-list{display:grid;gap:8px}
+.kursat-issue{padding:10px 11px;border:1px solid #e6e8eb;border-radius:9px;background:#fafbfc}
+.kursat-issue strong{display:block;font-size:11.8px;margin-bottom:2px}
+.kursat-issue p{margin:0;color:#818994;font-size:11.5px;line-height:1.5}
+.kursat-empty-mini{padding:18px 4px;color:#8d959f;font-size:12px;line-height:1.55}
+.kursat-result{margin-top:16px;overflow:hidden}
+.kursat-result-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-bottom:1px solid var(--kursat-line)}
+.kursat-metric{padding:15px 17px;border-right:1px solid var(--kursat-line)}
+.kursat-metric:last-child{border-right:0}
+.kursat-metric small{display:block;color:#8d959f;font-size:10px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+.kursat-metric strong{font-size:18px;letter-spacing:-.03em}
+.kursat-result-tabs{display:flex;gap:4px;padding:10px 12px;border-bottom:1px solid var(--kursat-line);background:#fbfbfc;overflow:auto}
+.kursat-result-tab{border:0;background:transparent;padding:8px 10px;border-radius:8px;color:#707884;font-size:12px;font-weight:670;white-space:nowrap}
+.kursat-result-tab.is-active{background:#eceff2;color:#20252a}
+.kursat-result-panel{display:none;padding:18px}
+.kursat-result-panel.is-active{display:block}
+.kursat-result-code{margin:0;background:#181b1f;color:#e8eaed;border-radius:11px;padding:18px;font-family:"SFMono-Regular",Consolas,monospace;font-size:12.5px;line-height:1.7;white-space:pre-wrap;word-break:break-word;max-height:480px;overflow:auto}
+.kursat-two-col{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.kursat-diff-box{border:1px solid var(--kursat-line);border-radius:11px;overflow:hidden}
+.kursat-diff-box header{padding:10px 12px;background:#f7f8f9;border-bottom:1px solid var(--kursat-line);font-size:11.5px;font-weight:700}
+.kursat-diff-content{padding:14px;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.65;min-height:180px;white-space:pre-wrap}
+.kursat-list-clean{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.kursat-list-clean li{display:flex;gap:9px;padding:10px 0;border-bottom:1px solid #eceef0;font-size:12.5px;color:#535b65}
+.kursat-list-clean li:last-child{border-bottom:0}
+.kursat-check{width:18px;height:18px;border-radius:50%;background:#e9f5f0;color:#197958;display:grid;place-items:center;font-size:10px;font-weight:800;flex:0 0 auto}
+.kursat-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.kursat-toolbar-left,.kursat-toolbar-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.kursat-input,.kursat-select,.kursat-textarea{width:100%;border:1px solid var(--kursat-line-strong);background:#fff;color:#24292f;border-radius:10px;outline:0;transition:border-color .15s ease,box-shadow .15s ease}
+.kursat-input,.kursat-select{height:40px;padding:0 11px}
+.kursat-textarea{min-height:130px;padding:11px 12px;resize:vertical;line-height:1.6}
+.kursat-input:focus,.kursat-select:focus,.kursat-textarea:focus{border-color:#aeb5bd;box-shadow:0 0 0 3px rgba(93,104,116,.08)}
+.kursat-search{position:relative;min-width:250px}
+.kursat-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;fill:none;stroke:#8b929c;stroke-width:1.8}
+.kursat-search .kursat-input{padding-left:34px}
+.kursat-empty{padding:56px 28px;text-align:center;background:#fff;border:1px dashed #d8dde2;border-radius:var(--kursat-radius)}
+.kursat-empty-icon{width:42px;height:42px;border-radius:12px;background:#f0f2f4;color:#707984;margin:0 auto 13px;display:grid;place-items:center}
+.kursat-empty-icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7}
+.kursat-empty h3{margin:0 0 6px;font-size:15px}
+.kursat-empty p{margin:0 auto 16px;color:#858d97;font-size:12.5px;max-width:410px}
+.kursat-table-card{overflow:hidden}
+.kursat-table{width:100%;border-collapse:collapse}
+.kursat-table th{padding:11px 14px;text-align:left;background:#f8f9fa;color:#8a929c;font-size:10px;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--kursat-line)}
+.kursat-table td{padding:13px 14px;border-bottom:1px solid #eceef0;font-size:12.5px;color:#4b535d;vertical-align:middle}
+.kursat-table tr:last-child td{border-bottom:0}
+.kursat-table-title{font-weight:700;color:#24292f}
+.kursat-badge{display:inline-flex;align-items:center;border-radius:999px;background:#f0f2f4;color:#68717b;font-size:10px;font-weight:700;padding:4px 7px}
+.kursat-badge--accent{background:var(--kursat-accent-soft);color:#b6532d}
+.kursat-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.kursat-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.kursat-route-card,.kursat-flow-card,.kursat-block-card{border:1px solid var(--kursat-line);background:#fff;border-radius:12px;padding:16px;text-align:left;transition:.15s ease}
+.kursat-route-card:hover,.kursat-flow-card:hover,.kursat-block-card:hover{transform:translateY(-2px);border-color:#cbd0d6;box-shadow:0 8px 22px rgba(20,23,26,.05)}
+.kursat-route-card h3,.kursat-flow-card h3,.kursat-block-card h3{margin:9px 0 5px;font-size:14px}
+.kursat-route-card p,.kursat-flow-card p,.kursat-block-card p{margin:0;color:#7d8590;font-size:12px;line-height:1.55}
+.kursat-route-icon{width:34px;height:34px;border-radius:10px;background:#f1f3f5;color:#5f6872;display:grid;place-items:center}
+.kursat-route-icon svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7}
+.kursat-builder{margin-top:16px;padding:18px}
+.kursat-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.kursat-field{display:grid;gap:6px}
+.kursat-field label{font-size:11px;font-weight:700;color:#565e68}
+.kursat-field small{font-size:10.5px;color:#9097a0}
+.kursat-builder-preview{margin-top:14px;border:1px solid var(--kursat-line);border-radius:11px;background:#fbfbfc;overflow:hidden}
+.kursat-builder-preview header{padding:10px 12px;border-bottom:1px solid var(--kursat-line);font-size:11px;font-weight:700;color:#626b75}
+.kursat-builder-preview pre{margin:0;padding:14px;white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:11.8px;line-height:1.65;color:#333940}
+.kursat-flow-steps{display:grid;gap:7px;margin-top:12px}
+.kursat-flow-step{display:flex;align-items:flex-start;gap:10px;padding:10px;border:1px solid #e7e9ec;border-radius:9px;background:#fafbfc}
+.kursat-flow-step input{margin-top:3px;accent-color:#1d2227}
+.kursat-flow-step strong{display:block;font-size:11.8px;margin-bottom:2px}
+.kursat-flow-step span{display:block;color:#808893;font-size:10.8px;line-height:1.5}
+.kursat-block-card.is-selected{border-color:#d89170;background:#fff9f5}
+.kursat-block-card.is-selected .kursat-route-icon{background:#ffe9dd;color:#b4522c}
+.kursat-composer{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px}
+.kursat-composer-stack{display:grid;gap:8px}
+.kursat-composer-item{border:1px solid var(--kursat-line);background:#fff;border-radius:10px;padding:11px}
+.kursat-composer-item-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.kursat-composer-item-head strong{font-size:11.8px}
+.kursat-composer-item textarea{min-height:84px}
+.kursat-score-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.kursat-score-card{padding:14px;border:1px solid var(--kursat-line);background:#fff;border-radius:11px}
+.kursat-score-card small{display:block;color:#8b929c;font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:750}
+.kursat-score-card strong{display:block;font-size:24px;margin-top:4px;letter-spacing:-.04em}
+.kursat-progress{height:7px;background:#eceef0;border-radius:999px;overflow:hidden;margin-top:9px}
+.kursat-progress span{display:block;height:100%;background:#1d2227;border-radius:999px}
+.kursat-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.kursat-settings-card{padding:18px}
+.kursat-settings-card h3{margin:0 0 5px;font-size:14px}
+.kursat-settings-card>p{margin:0 0 16px;color:#858d97;font-size:12px}
+.kursat-setting-row{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:11px 0;border-top:1px solid #eceef0}
+.kursat-setting-row:first-of-type{border-top:0}
+.kursat-setting-row strong{display:block;font-size:12px}
+.kursat-setting-row span{display:block;color:#8b929c;font-size:10.8px;margin-top:2px}
+.kursat-toggle{width:42px;height:24px;border:0;border-radius:999px;background:#d9dde1;padding:3px;transition:.15s ease}
+.kursat-toggle span{display:block;width:18px;height:18px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.12);transition:.15s ease;margin:0}
+.kursat-toggle.is-on{background:#1e2327}.kursat-toggle.is-on span{margin-left:18px}
+.kursat-modal-backdrop{position:fixed;inset:0;background:rgba(15,18,21,.38);z-index:80;display:none;align-items:center;justify-content:center;padding:20px}
+.kursat-modal-backdrop.is-open{display:flex;animation:kursatFade .14s ease both}
+@keyframes kursatFade{from{opacity:0}to{opacity:1}}
+.kursat-modal{width:min(620px,100%);max-height:min(760px,calc(100vh - 40px));overflow:auto;background:#fff;border:1px solid #d9dde2;border-radius:16px;box-shadow:0 24px 70px rgba(15,18,21,.19);animation:kursatModalIn .17s ease both}
+@keyframes kursatModalIn{from{opacity:0;transform:translateY(6px) scale(.99)}to{opacity:1;transform:none}}
+.kursat-modal-head{padding:17px 18px;border-bottom:1px solid var(--kursat-line);display:flex;align-items:center;justify-content:space-between;gap:14px}
+.kursat-modal-head h2{margin:0;font-size:15px}.kursat-modal-body{padding:16px 18px}.kursat-modal-foot{padding:13px 18px;border-top:1px solid var(--kursat-line);display:flex;justify-content:flex-end;gap:8px}
+.kursat-command{width:min(680px,100%);align-self:flex-start;margin-top:9vh}
+.kursat-command-search{padding:12px;border-bottom:1px solid var(--kursat-line)}
+.kursat-command-search input{height:45px;border:0;background:#f5f6f8;font-size:14px;padding:0 14px;border-radius:10px;outline:0;width:100%}
+.kursat-command-list{padding:7px;display:grid;gap:2px;max-height:430px;overflow:auto}
+.kursat-command-item{border:0;background:transparent;border-radius:9px;padding:10px 11px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.kursat-command-item:hover{background:#f2f4f6}
+.kursat-command-item strong{font-size:12.5px}.kursat-command-item span{display:block;color:#8d949e;font-size:10.8px;margin-top:2px}.kursat-command-item kbd{font-size:9.5px;color:#9299a3}
+.kursat-toast-stack{position:fixed;right:18px;bottom:18px;z-index:110;display:grid;gap:8px}
+.kursat-toast{min-width:260px;max-width:360px;background:#1b1f23;color:#fff;border-radius:11px;padding:11px 13px;box-shadow:0 14px 38px rgba(0,0,0,.2);font-size:12px;animation:kursatToastIn .18s ease both}
+@keyframes kursatToastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.kursat-toast strong{display:block;margin-bottom:2px;font-size:12px}.kursat-toast span{color:#bfc5cc;font-size:10.8px}
+.kursat-loading{display:inline-flex;gap:4px;align-items:center}.kursat-loading i{width:4px;height:4px;background:currentColor;border-radius:50%;animation:kursatDot .8s infinite alternate}.kursat-loading i:nth-child(2){animation-delay:.15s}.kursat-loading i:nth-child(3){animation-delay:.3s}@keyframes kursatDot{from{opacity:.25;transform:translateY(0)}to{opacity:1;transform:translateY(-2px)}}
+@media (max-width:1100px){
+  .kursat-forge-layout{grid-template-columns:1fr}.kursat-preflight{position:static}.kursat-settings-grid,.kursat-composer{grid-template-columns:1fr}.kursat-grid-3{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:900px){
+  .kursat-sidebar{transform:translateX(-100%);width:270px;transition:transform .2s ease}.kursat-sidebar.is-open{transform:none;box-shadow:20px 0 45px rgba(0,0,0,.22)}.kursat-sidebar-close{display:flex}.kursat-main{margin-left:0}.kursat-mobile-menu{display:flex}.kursat-content{padding:28px 20px 52px}.kursat-topbar{padding:0 18px}.kursat-command-button span:not(.kursat-key){display:none}.kursat-command-button .kursat-key{display:none}
+}
+@media (max-width:700px){
+  .kursat-page-head{align-items:flex-start;flex-direction:column}.kursat-page-head h1{font-size:27px}.kursat-model-bar{grid-template-columns:repeat(2,minmax(0,1fr))}.kursat-model-option:last-child{grid-column:1/-1}.kursat-result-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.kursat-metric:nth-child(2){border-right:0}.kursat-metric:nth-child(-n+2){border-bottom:1px solid var(--kursat-line)}.kursat-editor-footer{align-items:flex-start;flex-direction:column}.kursat-forge-action-row{width:100%;justify-content:space-between}.kursat-goal-control{overflow:auto;max-width:100%}.kursat-grid-3,.kursat-grid-2,.kursat-form-grid,.kursat-two-col,.kursat-score-grid{grid-template-columns:1fr}.kursat-topbar-actions .kursat-user-button span:last-child{display:none}.kursat-content{padding-left:14px;padding-right:14px}.kursat-table-card{overflow:auto}.kursat-table{min-width:680px}
+}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* Görsel sistemi burada tamamlıyorum; hareketler gösteriş için değil, hiyerarşiyi daha anlaşılır yapmak için var. */
+:root{
+  --kursat-ease:cubic-bezier(.2,.75,.25,1);
+  --kursat-ease-out:cubic-bezier(.16,1,.3,1);
+  --kursat-motion-fast:140ms;
+  --kursat-motion-base:220ms;
+  --kursat-motion-slow:360ms;
+  --kursat-focus-ring:0 0 0 4px rgba(230,107,53,.11);
+  --kursat-card-shadow:0 1px 1px rgba(20,23,26,.02),0 12px 32px rgba(20,23,26,.04);
+  --kursat-card-shadow-hover:0 1px 1px rgba(20,23,26,.025),0 18px 42px rgba(20,23,26,.065);
+}
+html,body{color-scheme:light}
+html[data-kursat-theme="dark"],html[data-kursat-theme="dark"] body{color-scheme:dark}
+body{transition:background var(--kursat-motion-base) var(--kursat-ease),color var(--kursat-motion-base) var(--kursat-ease)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:-1;background-image:linear-gradient(rgba(22,25,29,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(22,25,29,.018) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.24),transparent 38%);opacity:.45}
+
+/* Sidebar'ı daha fiziksel ve sakin hissettirmek için aktif çizgiyi ayrı hareket ettiriyorum. */
+.kursat-sidebar{box-shadow:8px 0 28px rgba(10,12,14,.05);transition:transform var(--kursat-motion-base) var(--kursat-ease-out),box-shadow var(--kursat-motion-base) var(--kursat-ease)}
+.kursat-brand{transition:background var(--kursat-motion-fast) ease,transform var(--kursat-motion-fast) var(--kursat-ease)}
+.kursat-brand:hover{transform:translateX(1px)}
+.kursat-brand img{transition:transform var(--kursat-motion-base) var(--kursat-ease-out)}
+.kursat-brand:hover img{transform:rotate(-4deg) scale(1.04)}
+.kursat-nav-button{position:relative;isolation:isolate;overflow:hidden;transition:background var(--kursat-motion-fast) ease,color var(--kursat-motion-fast) ease,transform var(--kursat-motion-fast) var(--kursat-ease)}
+.kursat-nav-button::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:0 999px 999px 0;background:var(--kursat-accent);transform:scaleY(0);opacity:0;transition:transform var(--kursat-motion-base) var(--kursat-ease-out),opacity var(--kursat-motion-fast) ease}
+.kursat-nav-button:hover{transform:translateX(2px)}
+.kursat-nav-button.is-active::before{transform:scaleY(1);opacity:1}
+.kursat-nav-button.is-active .kursat-nav-icon{transform:scale(1.04)}
+.kursat-nav-icon{transition:transform var(--kursat-motion-base) var(--kursat-ease-out),color var(--kursat-motion-fast) ease}
+.kursat-sidebar-backdrop{display:none;position:fixed;inset:0;z-index:35;border:0;background:rgba(8,10,12,.42);opacity:0;pointer-events:none;transition:opacity var(--kursat-motion-base) ease;backdrop-filter:blur(2px)}
+
+/* Topbar kaydırma sırasında daha belirgin hale geliyor ama cam efekti abartılmıyor. */
+.kursat-topbar{transition:box-shadow var(--kursat-motion-base) ease,background var(--kursat-motion-base) ease;border-color var(--kursat-motion-base) ease;backdrop-filter:saturate(120%) blur(10px)}
+.kursat-topbar.is-scrolled{box-shadow:0 8px 26px rgba(20,23,26,.055)}
+.kursat-theme-quick{position:relative;overflow:hidden}
+.kursat-theme-quick svg{position:absolute;transition:transform var(--kursat-motion-base) var(--kursat-ease-out),opacity var(--kursat-motion-fast) ease}
+.kursat-theme-icon-moon{opacity:0;transform:rotate(-30deg) scale(.72)}
+html[data-kursat-theme="dark"] .kursat-theme-icon-sun{opacity:0;transform:rotate(30deg) scale(.72)}
+html[data-kursat-theme="dark"] .kursat-theme-icon-moon{opacity:1;transform:none}
+
+/* Sayfa girişlerini tek tek stagger ederek arayüzün ağırlaşmadan canlı görünmesini sağlıyorum. */
+.kursat-view{animation:none}
+.kursat-view.is-active.is-entering>.kursat-page-head,.kursat-view.is-active.is-entering>.kursat-model-bar,.kursat-view.is-active.is-entering>.kursat-forge-layout,.kursat-view.is-active.is-entering>.kursat-grid-3,.kursat-view.is-active.is-entering>.kursat-toolbar,.kursat-view.is-active.is-entering>.kursat-settings-grid,.kursat-view.is-active.is-entering>#kursat-history-content,.kursat-view.is-active.is-entering>#kursat-favorites-content,.kursat-view.is-active.is-entering>#kursat-compare-content,.kursat-view.is-active.is-entering>#kursat-health-results{animation:kursatSectionIn var(--kursat-motion-slow) var(--kursat-ease-out) both;animation-delay:var(--kursat-stagger,0ms)}
+@keyframes kursatSectionIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.kursat-page-head h1{transition:color var(--kursat-motion-base) ease}
+.kursat-page-head-copy{animation:kursatHeadIn var(--kursat-motion-slow) var(--kursat-ease-out) both}
+@keyframes kursatHeadIn{from{opacity:.01;transform:translateY(7px)}to{opacity:1;transform:none}}
+
+/* Ortak kartlar yalnızca etkileşim olduğunda yükseliyor; statik kartları sürekli oynatmıyorum. */
+.kursat-card{transition:border-color var(--kursat-motion-base) ease,box-shadow var(--kursat-motion-base) ease,background var(--kursat-motion-base) ease,transform var(--kursat-motion-base) var(--kursat-ease-out)}
+.kursat-route-card,.kursat-flow-card,.kursat-block-card,.kursat-score-card{box-shadow:0 1px 0 rgba(20,23,26,.015);transition:transform var(--kursat-motion-base) var(--kursat-ease-out),border-color var(--kursat-motion-base) ease,box-shadow var(--kursat-motion-base) ease,background var(--kursat-motion-base) ease}
+.kursat-route-card:hover,.kursat-flow-card:hover,.kursat-block-card:hover{transform:translateY(-3px);box-shadow:var(--kursat-card-shadow-hover)}
+.kursat-route-card:active,.kursat-flow-card:active,.kursat-block-card:active{transform:translateY(-1px) scale(.995)}
+.kursat-route-icon{transition:transform var(--kursat-motion-base) var(--kursat-ease-out),background var(--kursat-motion-base) ease,color var(--kursat-motion-base) ease}
+.kursat-route-card:hover .kursat-route-icon,.kursat-flow-card:hover .kursat-route-icon,.kursat-block-card:hover .kursat-route-icon{transform:translateY(-1px) rotate(-2deg)}
+
+/* Model ve hedef seçimlerinde aktif durum artık daha akıcı değişiyor. */
+.kursat-model-bar{transition:background var(--kursat-motion-base) ease,border-color var(--kursat-motion-base) ease}
+.kursat-model-option{position:relative;overflow:hidden;transition:transform var(--kursat-motion-base) var(--kursat-ease-out),background var(--kursat-motion-base) ease,border-color var(--kursat-motion-base) ease,box-shadow var(--kursat-motion-base) ease,color var(--kursat-motion-base) ease}
+.kursat-model-option:hover{transform:translateY(-1px)}
+.kursat-model-option:active{transform:translateY(0) scale(.988)}
+.kursat-model-option.is-pulse{animation:kursatSelectPulse .28s var(--kursat-ease-out)}
+@keyframes kursatSelectPulse{0%{transform:scale(.985)}60%{transform:scale(1.012)}100%{transform:none}}
+.kursat-model-glyph{transition:background var(--kursat-motion-base) ease,color var(--kursat-motion-base) ease,transform var(--kursat-motion-base) var(--kursat-ease-out)}
+.kursat-model-option.is-active .kursat-model-glyph{transform:scale(1.04)}
+.kursat-goal-control{position:relative;transition:background var(--kursat-motion-base) ease}
+.kursat-goal-option{transition:color var(--kursat-motion-fast) ease,background var(--kursat-motion-base) ease,box-shadow var(--kursat-motion-base) ease,transform var(--kursat-motion-fast) var(--kursat-ease)}
+.kursat-goal-option:hover{color:#30363d}.kursat-goal-option:active{transform:scale(.98)}
+
+/* Editör çalışma alanının ana öğesi; focus ve drag-drop durumlarını burada belirginleştiriyorum. */
+.kursat-editor-card{position:relative;box-shadow:var(--kursat-card-shadow)}
+.kursat-editor-card:focus-within{border-color:#c9b6aa;box-shadow:var(--kursat-card-shadow),var(--kursat-focus-ring);transform:translateY(-1px)}
+.kursat-editor-dropzone{position:relative}
+.kursat-prompt-textarea{transition:background var(--kursat-motion-base) ease,color var(--kursat-motion-base) ease,min-height var(--kursat-motion-slow) var(--kursat-ease-out)}
+.kursat-editor-card:focus-within .kursat-prompt-textarea{min-height:390px}
+.kursat-drop-overlay{position:absolute;inset:10px;border:1.5px dashed #dc8d68;background:rgba(255,247,242,.94);border-radius:11px;z-index:8;display:grid;place-items:center;opacity:0;visibility:hidden;transform:scale(.99);transition:opacity var(--kursat-motion-fast) ease,transform var(--kursat-motion-base) var(--kursat-ease-out),visibility var(--kursat-motion-fast) ease;pointer-events:none}
+.kursat-drop-overlay>div{text-align:center;color:#934923}.kursat-drop-overlay svg{width:26px;height:26px;margin:0 auto 8px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}.kursat-drop-overlay strong{display:block;font-size:13px}.kursat-drop-overlay span{display:block;margin-top:4px;font-size:10.5px;color:#a96d50}
+.kursat-editor-card.is-dragging .kursat-drop-overlay{opacity:1;visibility:visible;transform:none}
+.kursat-editor-action{display:inline-flex;align-items:center;gap:5px;transition:background var(--kursat-motion-fast) ease,color var(--kursat-motion-fast) ease,transform var(--kursat-motion-fast) var(--kursat-ease)}
+.kursat-editor-action:hover{transform:translateY(-1px)}.kursat-editor-action:active{transform:none}
+.kursat-action-icon svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.kursat-editor-meta{display:flex;align-items:center;gap:9px;min-width:0}.kursat-draft-status{font-size:10.5px;color:#9aa1aa;opacity:0;transform:translateY(2px);transition:opacity var(--kursat-motion-base) ease,transform var(--kursat-motion-base) var(--kursat-ease-out)}.kursat-draft-status.is-visible{opacity:1;transform:none}.kursat-draft-status::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#54a17f;margin-right:6px;vertical-align:1px}
+
+/* Forge butonu işlem sırasında kontrollü bir ilerleme hissi veriyor. */
+.kursat-forge-button{position:relative;overflow:hidden;isolation:isolate;min-width:132px}
+.kursat-forge-button>*{position:relative;z-index:2}.kursat-forge-button-bg{position:absolute;z-index:1;left:0;top:0;bottom:0;width:0;background:#c95627;transition:width .7s var(--kursat-ease-out)}
+.kursat-forge-button-icon svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform var(--kursat-motion-base) var(--kursat-ease-out)}
+.kursat-forge-button:hover .kursat-forge-button-icon svg{transform:rotate(18deg)}
+.kursat-forge-button.is-loading{cursor:wait;transform:none;box-shadow:none}.kursat-forge-button.is-loading .kursat-forge-button-bg{width:100%}.kursat-forge-button.is-loading .kursat-forge-button-icon svg{animation:kursatForgeSpin .9s linear infinite}.kursat-forge-button.is-loading .kursat-forge-button-label{opacity:.92}
+@keyframes kursatForgeSpin{to{transform:rotate(180deg)}}
+
+/* Backend bağlanana kadar da aynı yükleme yüzeyini kullanabilmek için process panelini gerçek ürün bileşeni gibi hazırlıyorum. */
+.kursat-process{margin-top:16px;padding:18px;overflow:hidden;animation:kursatProcessIn var(--kursat-motion-slow) var(--kursat-ease-out) both}
+@keyframes kursatProcessIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kursat-process-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.kursat-process-kicker{display:block;color:#9aa1aa;font-size:9.5px;font-weight:800;letter-spacing:.11em;text-transform:uppercase;margin-bottom:4px}.kursat-process-top strong{font-size:13px}.kursat-process-percent{font-size:11px;color:#8e96a0;font-variant-numeric:tabular-nums}
+.kursat-process-track{height:4px;background:#eceff2;border-radius:999px;overflow:hidden;margin:16px 0 13px}.kursat-process-track span{display:block;height:100%;width:0;background:var(--kursat-accent);border-radius:inherit;transition:width .24s var(--kursat-ease-out)}
+.kursat-process-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.kursat-process-steps span{position:relative;padding-left:13px;color:#9ba2ab;font-size:10.5px;transition:color var(--kursat-motion-base) ease}.kursat-process-steps span::before{content:"";position:absolute;left:0;top:5px;width:6px;height:6px;border-radius:50%;background:#d9dde2;transition:background var(--kursat-motion-base) ease,transform var(--kursat-motion-base) var(--kursat-ease-out)}.kursat-process-steps span.is-active{color:#31373e}.kursat-process-steps span.is-active::before{background:var(--kursat-accent);transform:scale(1.15)}.kursat-process-steps span.is-done{color:#5d7167}.kursat-process-steps span.is-done::before{background:#4d9876}
+
+/* Ön kontrol değişirken kartın tamamını oynatmak yerine yalnızca durum öğeleri hareket ediyor. */
+.kursat-status-dot{transition:background var(--kursat-motion-base) ease,transform var(--kursat-motion-base) var(--kursat-ease-out),box-shadow var(--kursat-motion-base) ease}
+.kursat-status-dot.is-ready{box-shadow:0 0 0 4px rgba(22,122,85,.09);animation:kursatStatusBreathe 2.6s ease-in-out infinite}.kursat-status-dot.is-warning{box-shadow:0 0 0 4px rgba(208,155,60,.1)}
+@keyframes kursatStatusBreathe{50%{transform:scale(1.13)}}
+.kursat-issue{animation:kursatIssueIn var(--kursat-motion-base) var(--kursat-ease-out) both}
+@keyframes kursatIssueIn{from{opacity:0;transform:translateX(5px)}to{opacity:1;transform:none}}
+
+/* Sonuç alanı tek parça patlamasın diye metrikleri kademeli açıyorum. */
+.kursat-result{opacity:0;transform:translateY(10px)}.kursat-result.is-revealed{animation:kursatResultIn var(--kursat-motion-slow) var(--kursat-ease-out) forwards}
+@keyframes kursatResultIn{to{opacity:1;transform:none}}
+.kursat-result.is-revealed .kursat-metric{animation:kursatMetricIn .38s var(--kursat-ease-out) both}.kursat-result.is-revealed .kursat-metric:nth-child(2){animation-delay:45ms}.kursat-result.is-revealed .kursat-metric:nth-child(3){animation-delay:90ms}.kursat-result.is-revealed .kursat-metric:nth-child(4){animation-delay:135ms}
+@keyframes kursatMetricIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.kursat-result-tab{position:relative;transition:color var(--kursat-motion-fast) ease,background var(--kursat-motion-fast) ease}
+.kursat-result-tab::after{content:"";position:absolute;left:10px;right:10px;bottom:-10px;height:2px;background:var(--kursat-accent);transform:scaleX(0);transform-origin:left;transition:transform var(--kursat-motion-base) var(--kursat-ease-out)}.kursat-result-tab.is-active::after{transform:scaleX(1)}
+.kursat-result-panel.is-active{animation:kursatPanelIn var(--kursat-motion-base) var(--kursat-ease-out) both}@keyframes kursatPanelIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.kursat-result-code{box-shadow:inset 0 1px 0 rgba(255,255,255,.035);scrollbar-color:#474e56 #1b1f23}
+.kursat-check{transition:transform var(--kursat-motion-base) var(--kursat-ease-out)}.kursat-list-clean li:hover .kursat-check{transform:scale(1.08)}
+
+/* Form, tablo ve ayar ekranlarında küçük ama tutarlı feedback kullanıyorum. */
+.kursat-input,.kursat-select,.kursat-textarea{transition:border-color var(--kursat-motion-fast) ease,box-shadow var(--kursat-motion-base) ease,background var(--kursat-motion-base) ease,color var(--kursat-motion-base) ease}
+.kursat-input:focus,.kursat-select:focus,.kursat-textarea:focus{box-shadow:0 0 0 4px rgba(65,76,87,.075)}
+.kursat-table tr{transition:background var(--kursat-motion-fast) ease}.kursat-table tbody tr:hover{background:#fafbfc}
+.kursat-empty{transition:border-color var(--kursat-motion-base) ease,background var(--kursat-motion-base) ease}.kursat-empty-icon{transition:transform var(--kursat-motion-base) var(--kursat-ease-out)}.kursat-empty:hover .kursat-empty-icon{transform:translateY(-2px)}
+.kursat-toggle{transition:background var(--kursat-motion-base) ease,box-shadow var(--kursat-motion-base) ease}.kursat-toggle:focus-visible{box-shadow:var(--kursat-focus-ring)}.kursat-toggle span{transition:transform var(--kursat-motion-base) var(--kursat-ease-out),margin var(--kursat-motion-base) var(--kursat-ease-out)}
+.kursat-segmented{display:flex;align-items:center;gap:3px;padding:3px;background:#eef0f2;border-radius:9px}.kursat-segmented button{border:0;background:transparent;color:#747c86;min-height:31px;padding:0 10px;border-radius:7px;font-size:11px;font-weight:670;transition:background var(--kursat-motion-base) ease,color var(--kursat-motion-fast) ease,box-shadow var(--kursat-motion-base) ease,transform var(--kursat-motion-fast) ease}.kursat-segmented button:hover{color:#31373e}.kursat-segmented button.is-active{background:#fff;color:#1d2227;box-shadow:0 1px 4px rgba(20,23,26,.08)}.kursat-segmented button:active{transform:scale(.98)}
+.kursat-setting-stack{display:grid;gap:10px;padding:12px 0;border-top:1px solid #eceef0}.kursat-setting-stack:first-of-type{border-top:0}.kursat-setting-stack strong{display:block;font-size:12px}.kursat-setting-stack span{display:block;color:#8b929c;font-size:10.8px;margin-top:2px}
+
+/* Command palette klavyeyle kullanıldığında seçili satırı net gösteriyorum. */
+.kursat-command-item{transition:background var(--kursat-motion-fast) ease,transform var(--kursat-motion-fast) var(--kursat-ease)}.kursat-command-item:hover,.kursat-command-item.is-current{background:#f2f4f6;transform:translateX(2px)}
+.kursat-command-search input:focus{box-shadow:0 0 0 3px rgba(83,94,106,.07)}
+
+/* Modal ve toast kapanışlarını da açılış kadar kontrollü tutuyorum. */
+.kursat-modal-backdrop.is-closing{animation:kursatFadeOut var(--kursat-motion-fast) ease both}.kursat-modal-backdrop.is-closing .kursat-modal{animation:kursatModalOut var(--kursat-motion-fast) ease both}@keyframes kursatFadeOut{to{opacity:0}}@keyframes kursatModalOut{to{opacity:0;transform:translateY(5px) scale(.992)}}
+.kursat-toast{position:relative;overflow:hidden;padding-right:16px}.kursat-toast::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:100%;background:var(--kursat-accent);transform-origin:left;animation:kursatToastLife 3.2s linear forwards}@keyframes kursatToastLife{to{transform:scaleX(0)}}.kursat-toast.is-leaving{animation:kursatToastOut var(--kursat-motion-fast) ease forwards}@keyframes kursatToastOut{to{opacity:0;transform:translateX(8px)}}
+
+/* Mobil drawer için ayrı backdrop ekliyorum; içerik artık menünün altında tıklanabilir kalmıyor. */
+@media (max-width:900px){
+  .kursat-sidebar-backdrop{display:block}.kursat-sidebar.is-open~.kursat-sidebar-backdrop{opacity:1;pointer-events:auto}
+}
+
+/* Odak modu editörü geçici olarak tüm çalışma alanının önüne alıyor. */
+.kursat-focus-exit{position:fixed;right:24px;top:20px;z-index:152;min-height:40px;border:1px solid #343b43;background:#171b1f;color:#f1f3f5;border-radius:10px;padding:0 12px;display:none;align-items:center;gap:8px;box-shadow:0 16px 46px rgba(0,0,0,.22);font-size:11.5px;font-weight:650}.kursat-focus-exit svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7}.kursat-focus-exit kbd{color:#8f98a3;font-size:9px;border:1px solid #353b42;padding:2px 5px;border-radius:5px}
+body.kursat-editor-focus{overflow:hidden}.kursat-editor-focus::after{content:"";position:fixed;inset:0;background:rgba(10,12,14,.62);z-index:145;backdrop-filter:blur(4px);animation:kursatFade .18s ease both}.kursat-editor-focus .kursat-editor-card{position:fixed;z-index:150;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1080px,calc(100vw - 64px));height:min(760px,calc(100vh - 80px));display:flex;flex-direction:column;border-color:#363d45;box-shadow:0 30px 100px rgba(0,0,0,.32);animation:kursatFocusIn .25s var(--kursat-ease-out) both}.kursat-editor-focus .kursat-editor-dropzone{flex:1;min-height:0}.kursat-editor-focus .kursat-prompt-textarea{height:100%;min-height:100%;resize:none}.kursat-editor-focus .kursat-focus-exit{display:flex}@keyframes kursatFocusIn{from{opacity:0;transform:translate(-50%,-48%) scale(.985)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+
+/* Yoğun görünüm yalnızca boşlukları sıkılaştırıyor; font ölçülerini küçültmüyorum. */
+html[data-kursat-density="compact"] .kursat-content{padding-top:26px}html[data-kursat-density="compact"] .kursat-page-head{margin-bottom:18px}html[data-kursat-density="compact"] .kursat-card-head{padding:14px 16px}html[data-kursat-density="compact"] .kursat-prompt-textarea{min-height:320px;padding:17px}html[data-kursat-density="compact"] .kursat-nav{gap:13px}html[data-kursat-density="compact"] .kursat-nav-button{padding-top:8px;padding-bottom:8px}
+
+/* Koyu temada sadece yüzeyleri değiştiriyorum; vurgu rengi ve bilgi hiyerarşisi aynı kalıyor. */
+html[data-kursat-theme="dark"]{
+  --kursat-bg:#111417;
+  --kursat-surface:#181c20;
+  --kursat-surface-soft:#1c2025;
+  --kursat-ink:#eef1f4;
+  --kursat-muted:#a2aab4;
+  --kursat-faint:#747d88;
+  --kursat-line:#292f35;
+  --kursat-line-strong:#343b43;
+  --kursat-sidebar:#0d1012;
+  --kursat-sidebar-soft:#15191d;
+  --kursat-sidebar-text:#f3f5f6;
+  --kursat-sidebar-muted:#7e8894;
+  --kursat-accent:#ee7a45;
+  --kursat-accent-soft:#342218;
+  --kursat-accent-line:#6f3b26;
+  --kursat-success:#61bd94;
+  --kursat-warning:#d5a45a;
+  --kursat-danger:#e07777;
+  --kursat-card-shadow:0 1px 0 rgba(255,255,255,.015),0 18px 40px rgba(0,0,0,.12);
+  --kursat-card-shadow-hover:0 1px 0 rgba(255,255,255,.02),0 22px 52px rgba(0,0,0,.2);
+}
+html[data-kursat-theme="dark"] body{background:var(--kursat-bg);color:var(--kursat-ink)}
+html[data-kursat-theme="dark"] body::before{background-image:linear-gradient(rgba(255,255,255,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.018) 1px,transparent 1px);opacity:.28}
+html[data-kursat-theme="dark"] .kursat-topbar{background:rgba(17,20,23,.92);border-color:var(--kursat-line)}
+html[data-kursat-theme="dark"] .kursat-mobile-menu,html[data-kursat-theme="dark"] .kursat-command-button,html[data-kursat-theme="dark"] .kursat-user-button,html[data-kursat-theme="dark"] .kursat-icon-button,html[data-kursat-theme="dark"] .kursat-button,html[data-kursat-theme="dark"] .kursat-input,html[data-kursat-theme="dark"] .kursat-select,html[data-kursat-theme="dark"] .kursat-textarea,html[data-kursat-theme="dark"] .kursat-card,html[data-kursat-theme="dark"] .kursat-model-option.is-active,html[data-kursat-theme="dark"] .kursat-route-card,html[data-kursat-theme="dark"] .kursat-flow-card,html[data-kursat-theme="dark"] .kursat-block-card,html[data-kursat-theme="dark"] .kursat-score-card,html[data-kursat-theme="dark"] .kursat-composer-item{background:#181c20;color:#e9ecef;border-color:#2d333a}
+html[data-kursat-theme="dark"] .kursat-button:hover,html[data-kursat-theme="dark"] .kursat-command-button:hover,html[data-kursat-theme="dark"] .kursat-user-button:hover{background:#20252a;border-color:#3a424a}
+html[data-kursat-theme="dark"] .kursat-button--primary{background:#f0f2f4;color:#171a1d;border-color:#f0f2f4}html[data-kursat-theme="dark"] .kursat-button--primary:hover{background:#fff;border-color:#fff}html[data-kursat-theme="dark"] .kursat-button--accent{background:var(--kursat-accent);color:#fff;border-color:var(--kursat-accent)}
+html[data-kursat-theme="dark"] .kursat-model-bar,html[data-kursat-theme="dark"] .kursat-goal-control,html[data-kursat-theme="dark"] .kursat-segmented{background:#15191d;border-color:#292f35}
+html[data-kursat-theme="dark"] .kursat-model-option{color:#a8b0ba}html[data-kursat-theme="dark"] .kursat-model-option:hover{background:#1d2227;border-color:#30373e}html[data-kursat-theme="dark"] .kursat-model-option.is-active{color:#f1f3f5;box-shadow:0 3px 14px rgba(0,0,0,.15)}
+html[data-kursat-theme="dark"] .kursat-model-glyph{background:#23282e;color:#aeb6c0}html[data-kursat-theme="dark"] .kursat-model-option.is-active .kursat-model-glyph{background:#3a281e;color:#f19468}
+html[data-kursat-theme="dark"] .kursat-card-head,html[data-kursat-theme="dark"] .kursat-editor-footer,html[data-kursat-theme="dark"] .kursat-result-tabs,html[data-kursat-theme="dark"] .kursat-diff-box header,html[data-kursat-theme="dark"] .kursat-table th,html[data-kursat-theme="dark"] .kursat-builder-preview{background:#171b1f;border-color:#2a3036}
+html[data-kursat-theme="dark"] .kursat-prompt-textarea{background:#181c20;color:#e8ebee}html[data-kursat-theme="dark"] .kursat-prompt-textarea::placeholder{color:#626c77}
+html[data-kursat-theme="dark"] .kursat-editor-action:hover,html[data-kursat-theme="dark"] .kursat-result-tab.is-active,html[data-kursat-theme="dark"] .kursat-command-item:hover,html[data-kursat-theme="dark"] .kursat-command-item.is-current{background:#24292f;color:#eef1f3}
+html[data-kursat-theme="dark"] .kursat-goal-option.is-active,html[data-kursat-theme="dark"] .kursat-segmented button.is-active{background:#282e34;color:#f0f2f4;box-shadow:none}
+html[data-kursat-theme="dark"] .kursat-preflight .kursat-issue,html[data-kursat-theme="dark"] .kursat-flow-step{background:#171b1f;border-color:#292f35}
+html[data-kursat-theme="dark"] .kursat-empty{background:#171b1f;border-color:#343a41}html[data-kursat-theme="dark"] .kursat-empty-icon{background:#22272c;color:#9da6b0}
+html[data-kursat-theme="dark"] .kursat-table td{border-color:#282e34;color:#abb3bd}html[data-kursat-theme="dark"] .kursat-table tbody tr:hover{background:#1b2025}html[data-kursat-theme="dark"] .kursat-table-title{color:#edf0f2}
+html[data-kursat-theme="dark"] .kursat-badge{background:#242a30;color:#abb3bd}html[data-kursat-theme="dark"] .kursat-badge--accent{background:#342218;color:#ef9469}
+html[data-kursat-theme="dark"] .kursat-builder-preview pre,html[data-kursat-theme="dark"] .kursat-diff-content{color:#cdd2d8}html[data-kursat-theme="dark"] .kursat-progress{background:#2b3137}html[data-kursat-theme="dark"] .kursat-progress span{background:#e5e8eb}
+html[data-kursat-theme="dark"] .kursat-setting-row,html[data-kursat-theme="dark"] .kursat-setting-stack{border-color:#292f35}html[data-kursat-theme="dark"] .kursat-toggle{background:#353c43}html[data-kursat-theme="dark"] .kursat-toggle.is-on{background:#e9ecef}html[data-kursat-theme="dark"] .kursat-toggle.is-on span{background:#171a1d}
+html[data-kursat-theme="dark"] .kursat-modal{background:#181c20;border-color:#323941;color:#eef1f4}html[data-kursat-theme="dark"] .kursat-modal-head,html[data-kursat-theme="dark"] .kursat-modal-foot,html[data-kursat-theme="dark"] .kursat-command-search{border-color:#2a3036}html[data-kursat-theme="dark"] .kursat-command-search input{background:#20252a;color:#eef1f4}
+html[data-kursat-theme="dark"] .kursat-drop-overlay{background:rgba(39,28,22,.96);border-color:#985b3e;color:#f0b08e}
+html[data-kursat-theme="dark"] .kursat-process-track{background:#2b3137}
+
+/* Hareketi ayarlardan kapattığımda sistem tercihi ne olursa olsun bütün özel motion'ı durduruyorum. */
+html[data-kursat-motion="off"] *,html[data-kursat-motion="off"] *::before,html[data-kursat-motion="off"] *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}
+
+@media(max-width:700px){
+  .kursat-process-steps{grid-template-columns:repeat(2,1fr)}
+  .kursat-editor-meta{width:100%;justify-content:space-between}
+  .kursat-focus-exit{right:12px;top:12px}.kursat-focus-exit span{display:none}.kursat-editor-focus .kursat-editor-card{width:calc(100vw - 24px);height:calc(100vh - 24px)}
+  .kursat-setting-stack{gap:9px}.kursat-segmented{max-width:100%;overflow:auto}
+}
+
+@media(prefers-reduced-motion:reduce){.kursat-status-dot.is-ready{animation:none}.kursat-page-head-copy{animation:none}}
+
+/* Klavye odağını mouse hover'ından ayrı tutuyorum; görünür ama kaba olmayan bir ring kullanıyorum. */
+button:focus-visible,a:focus-visible,[tabindex]:focus-visible{outline:none;box-shadow:var(--kursat-focus-ring)}
+.kursat-theme-quick svg{left:50%;top:50%;margin-left:-9px;margin-top:-9px}
+.kursat-theme-icon-sun{transform:rotate(0) scale(1)}
+.kursat-theme-icon-moon{transform:rotate(-30deg) scale(.72)}
+html[data-kursat-theme="dark"] .kursat-theme-icon-sun{transform:rotate(30deg) scale(.72)}
+html[data-kursat-theme="dark"] .kursat-theme-icon-moon{transform:rotate(0) scale(1)}
+body.kursat-sidebar-open{overflow:hidden}
+*{scrollbar-width:thin;scrollbar-color:#c8cdd3 transparent}
+html[data-kursat-theme="dark"] *{scrollbar-color:#3a424a transparent}
+html[data-kursat-theme="dark"] .kursat-result-code{background:#0f1215;color:#e5e8eb}
+html[data-kursat-theme="dark"] .kursat-diff-box{border-color:#2e353c;background:#181c20}
+html[data-kursat-theme="dark"] .kursat-draft-status{color:#818b95}
+html[data-kursat-theme="dark"] .kursat-theme-quick{background:#181c20}
+@media(prefers-reduced-motion:reduce){
+  .kursat-result{opacity:1;transform:none}
+  .kursat-view.is-active>*{opacity:1;transform:none}
+}
+
+/* Son turda inline sunum kurallarını da sınıflara taşıyorum; HTML yalnızca yapıyı anlatsın. */
+.kursat-card-body{padding:16px}.kursat-composer-stack--padded{padding:14px}.kursat-actions-end{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}.kursat-actions-end--top{padding-top:12px;margin-top:0}.kursat-select--auto{width:auto}.kursat-health-entry{padding:18px;margin-bottom:14px}.kursat-health-input{min-height:180px}.kursat-field--spaced{margin-top:12px}.kursat-confirm-copy{margin:0;color:var(--kursat-muted);font-size:13px}.kursat-inline-actions{display:flex;justify-content:flex-end;gap:6px}.kursat-favorite-card{padding:16px}.kursat-favorite-meta{display:flex;align-items:center;justify-content:space-between;gap:12px}.kursat-favorite-date{font-size:10.5px;color:#9299a3}.kursat-favorite-title{font-size:13px;margin:13px 0 6px}.kursat-favorite-preview{font-size:11.5px;color:#7e8791;line-height:1.6;margin:0 0 14px}.kursat-favorite-actions{display:flex;gap:7px}.kursat-compare-card{padding:16px}.kursat-compare-result{margin-top:14px}.kursat-compare-body{padding:16px}.kursat-analysis-card{padding:16px;margin-top:14px}.kursat-analysis-title{margin:0 0 9px;font-size:13px}
+html[data-kursat-theme="dark"] .kursat-favorite-date,html[data-kursat-theme="dark"] .kursat-favorite-preview{color:#89939e}
+.kursat-builder.is-opening{animation:kursatBuilderOpen .36s var(--kursat-ease-out) both}@keyframes kursatBuilderOpen{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.kursat-table tbody tr{animation:kursatRowIn .26s var(--kursat-ease-out) both}.kursat-table tbody tr:nth-child(2){animation-delay:25ms}.kursat-table tbody tr:nth-child(3){animation-delay:50ms}.kursat-table tbody tr:nth-child(4){animation-delay:75ms}@keyframes kursatRowIn{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.kursat-progress span{transition:width .62s var(--kursat-ease-out)}
+
+/* Kart gruplarında contextual focus kullanıyorum; hover edilen öğe öne çıkarken diğerleri hafifçe geri çekiliyor. */
+@supports selector(:has(*)){
+  .kursat-grid-3:has(.kursat-route-card:hover) .kursat-route-card:not(:hover),
+  .kursat-grid-3:has(.kursat-flow-card:hover) .kursat-flow-card:not(:hover),
+  .kursat-grid-3:has(.kursat-block-card:hover) .kursat-block-card:not(:hover){opacity:.72;transform:scale(.995)}
+  .kursat-model-bar:has(.kursat-model-option:hover) .kursat-model-option:not(:hover):not(.is-active){opacity:.76}
+}
+
+/* v19 — premium studio layer */
+:root{
+  --kursat-accent:#f06f42;
+  --kursat-accent-soft:#fff0e9;
+  --kursat-violet:#755cff;
+  --kursat-violet-soft:#f0edff;
+  --kursat-card-shadow:0 1px 2px rgba(18,22,28,.035),0 18px 48px rgba(18,22,28,.055);
+  --kursat-card-shadow-hover:0 2px 4px rgba(18,22,28,.045),0 26px 64px rgba(18,22,28,.085);
+  --kursat-radius:18px;
+}
+body{background:
+  radial-gradient(circle at 68% -12%,rgba(117,92,255,.08),transparent 30rem),
+  radial-gradient(circle at 12% 18%,rgba(240,111,66,.06),transparent 24rem),var(--kursat-bg)}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.42;background-image:linear-gradient(rgba(24,28,34,.018) 1px,transparent 1px),linear-gradient(90deg,rgba(24,28,34,.018) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,#000,transparent 72%)}
+.kursat-sidebar{background:linear-gradient(180deg,#111419 0%,#0c0f13 100%);border-right-color:rgba(255,255,255,.07);box-shadow:14px 0 44px rgba(9,12,16,.12)}
+.kursat-brand-row{border-bottom-color:rgba(255,255,255,.07)}
+.kursat-brand img{width:34px;height:34px;filter:drop-shadow(0 7px 16px rgba(240,111,66,.2))}
+.kursat-brand-copy strong{font-size:16px;letter-spacing:-.035em}
+.kursat-nav{gap:15px}.kursat-nav-button{position:relative;overflow:hidden}.kursat-nav-button.is-active{background:linear-gradient(90deg,rgba(255,255,255,.1),rgba(255,255,255,.055));box-shadow:inset 0 0 0 1px rgba(255,255,255,.04)}
+.kursat-nav-button.is-active::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:2px;border-radius:4px;background:linear-gradient(var(--kursat-accent),#ff9b75);box-shadow:0 0 14px rgba(240,111,66,.5)}
+.kursat-engine-live{display:inline-flex;align-items:center;gap:7px;margin-bottom:12px;color:#aeb7c2;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em}.kursat-engine-live i,.kursat-workspace-status i{width:6px;height:6px;border-radius:50%;background:#56c995;box-shadow:0 0 0 4px rgba(86,201,149,.1),0 0 12px rgba(86,201,149,.45)}
+.kursat-topbar{background:rgba(247,248,250,.78);backdrop-filter:blur(18px) saturate(145%);border-color:rgba(213,217,223,.76)}
+.kursat-workspace-status{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 10px;border:1px solid var(--kursat-line);background:rgba(255,255,255,.72);border-radius:999px;color:#77808b;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+.kursat-content{width:min(1500px,100%);padding:42px 40px 80px}
+.kursat-forge-hero{position:relative;align-items:center;margin:0 0 34px;padding:18px 0 28px;border-bottom:1px solid var(--kursat-line)}
+.kursat-forge-hero::after{content:"";position:absolute;right:7%;top:-62px;width:260px;height:180px;pointer-events:none;background:radial-gradient(circle,rgba(117,92,255,.12),transparent 68%);filter:blur(12px)}
+.kursat-forge-hero .kursat-page-head-copy{max-width:850px;position:relative;z-index:1}
+.kursat-forge-hero .kursat-eyebrow{display:inline-flex;align-items:center;gap:8px;color:#6f667f;letter-spacing:.14em}.kursat-forge-hero .kursat-eyebrow i{width:18px;height:1px;background:linear-gradient(90deg,var(--kursat-accent),var(--kursat-violet))}
+.kursat-forge-hero h1{font-size:clamp(38px,4.3vw,62px);line-height:1.02;letter-spacing:-.055em;font-weight:720}.kursat-forge-hero h1 em{font-style:normal;color:transparent;background:linear-gradient(92deg,#26212f 5%,#7a5fff 48%,#e96e45 96%);background-clip:text;-webkit-background-clip:text}
+.kursat-forge-hero p{font-size:15px;line-height:1.7;max-width:720px}.kursat-hero-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:18px}.kursat-hero-meta span{display:inline-flex;align-items:center;gap:6px;color:#727b86;font-size:10.5px;font-weight:680}.kursat-hero-meta span::before{content:"✓";display:grid;place-items:center;width:16px;height:16px;border-radius:50%;background:#edf8f3;color:#16835e;font-size:9px;font-weight:850}.kursat-hero-meta span+span{padding-left:10px;border-left:1px solid var(--kursat-line)}
+.kursat-studio-label{display:flex;align-items:center;gap:10px;margin:0 0 10px}.kursat-studio-label>span,.kursat-studio-index{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:#171b20;color:#fff;font-size:9px;font-weight:800;letter-spacing:.06em}.kursat-studio-label div{display:grid}.kursat-studio-label strong{font-size:11.5px;line-height:1.2}.kursat-studio-label small{color:#929aa5;font-size:10px;margin-top:2px}
+.kursat-model-bar{gap:9px;padding:8px;border-radius:16px;background:rgba(238,240,244,.72);backdrop-filter:blur(10px);margin-bottom:12px}.kursat-model-option{min-height:60px;border-radius:12px;padding:9px 12px}.kursat-model-option.is-active{border-color:rgba(117,92,255,.22);box-shadow:0 8px 22px rgba(42,35,79,.08)}.kursat-model-option.is-active .kursat-model-glyph{background:linear-gradient(145deg,var(--kursat-violet-soft),#fff0e9);color:#6653d6}.kursat-model-glyph{width:33px;height:33px;border-radius:10px}
+.kursat-control-deck{margin-bottom:18px;border:1px solid var(--kursat-line);border-radius:16px;background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(249,249,252,.9));box-shadow:0 10px 32px rgba(24,28,35,.035);overflow:hidden}.kursat-control-deck-head{height:44px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--kursat-line)}.kursat-control-deck-head>div{display:flex;align-items:center;gap:9px}.kursat-studio-index{width:22px;height:22px;border-radius:7px;background:linear-gradient(145deg,#6e58e8,#8b72ff)}.kursat-control-deck-head strong{font-size:11.5px}.kursat-control-hint{color:#98a0aa;font-size:10px}.kursat-control-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1.35fr;gap:10px;padding:12px}.kursat-compact-field{display:grid;gap:5px}.kursat-compact-field>span{font-size:9.5px;text-transform:uppercase;letter-spacing:.08em;color:#8c949e;font-weight:760}.kursat-compact-field .kursat-select{height:39px;border-radius:9px;font-size:11.5px;background-color:var(--kursat-surface)}
+.kursat-policy-stack{display:grid;grid-template-columns:1fr 1fr;gap:6px}.kursat-policy-toggle{display:flex;align-items:center;gap:8px;min-width:0;padding:7px 8px;border:1px solid var(--kursat-line);border-radius:9px;background:var(--kursat-surface);color:var(--kursat-ink);text-align:left}.kursat-policy-toggle>span{width:26px;height:16px;border-radius:999px;padding:2px;background:#d9dde2;flex:0 0 auto;transition:.18s}.kursat-policy-toggle>span i{display:block;width:12px;height:12px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:.18s}.kursat-policy-toggle.is-on>span{background:#7160df}.kursat-policy-toggle.is-on>span i{transform:translateX(10px)}.kursat-policy-toggle div{min-width:0}.kursat-policy-toggle strong,.kursat-policy-toggle small{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kursat-policy-toggle strong{font-size:9.8px}.kursat-policy-toggle small{font-size:8.8px;color:#929aa4;margin-top:1px}
+.kursat-forge-layout{grid-template-columns:minmax(0,1fr) 350px;gap:18px}.kursat-card{box-shadow:var(--kursat-card-shadow);border-color:rgba(219,223,229,.9)}.kursat-editor-card{border-radius:18px}.kursat-editor-card .kursat-card-head{min-height:74px;background:linear-gradient(180deg,#fff,#fcfcfd)}.kursat-panel-kicker{display:block;margin-bottom:4px;color:#8a7ec9;font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.12em}.kursat-prompt-textarea{min-height:420px;padding:24px 25px 30px;font-size:13.5px;line-height:1.82;background:linear-gradient(180deg,#fff 0%,#fdfdfe 100%)}
+.kursat-editor-insights{min-height:58px;display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 16px;border-top:1px solid var(--kursat-line);background:linear-gradient(90deg,#faf9ff,#fffaf7)}.kursat-insight-primary{display:flex;align-items:center;gap:9px;min-width:0}.kursat-spark{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(145deg,#ebe7ff,#fff0e9);color:#705be3;font-size:12px}.kursat-insight-primary strong,.kursat-insight-primary small{display:block}.kursat-insight-primary strong{font-size:10.5px}.kursat-insight-primary small{font-size:9.5px;color:#8d96a1;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.kursat-variable-list{display:flex;justify-content:flex-end;gap:5px;flex-wrap:wrap}.kursat-variable-chip{padding:4px 7px;border:1px solid #dcd6ff;border-radius:7px;background:#f3f0ff;color:#6652ce;font:650 9px ui-monospace,Consolas,monospace}.kursat-variable-empty{font-size:9.5px;color:#9ba2ab}
+.kursat-editor-footer{min-height:64px;padding:11px 13px 11px 18px;background:#fafbfc}.kursat-forge-button{min-height:44px;padding:0 17px;border-radius:11px;box-shadow:0 9px 22px rgba(240,111,66,.22)}
+.kursat-preflight{border-radius:18px;top:calc(var(--kursat-topbar-height) + 16px)}.kursat-preflight .kursat-card-head{padding:16px;align-items:flex-start;background:linear-gradient(145deg,#171b20,#22232d);color:#fff;border:0}.kursat-preflight .kursat-card-head p{color:#929aa6}.kursat-score-orbit{--score:0;position:relative;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;flex:0 0 auto;background:conic-gradient(#8c73ff calc(var(--score)*1%),rgba(255,255,255,.1) 0)}.kursat-score-orbit::before{content:"";position:absolute;inset:4px;border-radius:50%;background:#1b1f25}.kursat-score-orbit strong,.kursat-score-orbit small{position:relative;z-index:1}.kursat-score-orbit strong{font-size:17px;letter-spacing:-.04em}.kursat-score-orbit small{position:absolute;top:34px;color:#7f8995;font-size:7px}.kursat-preflight-body{padding:16px}.kursat-preflight-state{padding-bottom:13px;margin-bottom:13px;border-bottom:1px solid var(--kursat-line)}.kursat-issue-list{max-height:250px;overflow:auto;padding-right:2px}.kursat-issue{background:linear-gradient(145deg,#fbfbfc,#f8f9fb);border-radius:10px}.kursat-structure-checks{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:14px;padding-top:14px;border-top:1px solid var(--kursat-line)}.kursat-structure-checks span{display:flex;align-items:center;gap:6px;color:#8a929c;font-size:9.5px;font-weight:650}.kursat-structure-checks i{width:17px;height:17px;border-radius:6px;display:grid;place-items:center;background:#f0f2f4;color:#a1a8b1;font-size:9px;font-style:normal}.kursat-structure-checks span.is-ready{color:#3e6e5a}.kursat-structure-checks span.is-ready i{background:#e8f6ef;color:#16805c}.kursat-button--smart{width:100%;margin-top:14px;border-color:#ded9ff;background:linear-gradient(135deg,#f2efff,#fff5ef);color:#5849b0}.kursat-button--smart:disabled{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}
+.kursat-result{box-shadow:var(--kursat-card-shadow);border-radius:18px}.kursat-result-summary{background:linear-gradient(90deg,#fff,#fbfaff)}.kursat-result-code{background:linear-gradient(145deg,#14171b,#1d2027);border:1px solid rgba(255,255,255,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}.kursat-diagnostic-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}.kursat-diagnostic-card{padding:14px;border:1px solid var(--kursat-line);border-radius:12px;background:linear-gradient(145deg,var(--kursat-surface),var(--kursat-surface-soft))}.kursat-diagnostic-card>span{display:block;color:#8b94a0;font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:760}.kursat-diagnostic-card strong{display:block;margin-top:6px;font-size:17px;letter-spacing:-.035em}.kursat-diagnostic-card p{margin:7px 0 0;color:var(--kursat-muted);font-size:10.5px;line-height:1.5}
+html[data-kursat-theme="dark"] body{background:radial-gradient(circle at 70% -10%,rgba(117,92,255,.11),transparent 31rem),radial-gradient(circle at 10% 16%,rgba(240,111,66,.07),transparent 24rem),var(--kursat-bg)}
+html[data-kursat-theme="dark"] .kursat-topbar{background:rgba(15,18,22,.78)}html[data-kursat-theme="dark"] .kursat-workspace-status{background:rgba(25,29,34,.78)}
+html[data-kursat-theme="dark"] .kursat-forge-hero h1 em{background-image:linear-gradient(92deg,#f1f2f4 4%,#a892ff 52%,#f58c62 96%)}
+html[data-kursat-theme="dark"] .kursat-hero-meta span::before{background:#183128;color:#68d5a3}html[data-kursat-theme="dark"] .kursat-studio-label>span{background:#f0f2f4;color:#181b1f}
+html[data-kursat-theme="dark"] .kursat-control-deck{background:linear-gradient(145deg,rgba(25,29,34,.96),rgba(20,23,28,.92));border-color:#2c3239}html[data-kursat-theme="dark"] .kursat-compact-field .kursat-select,html[data-kursat-theme="dark"] .kursat-policy-toggle{background:#15191d;border-color:#2d333a}html[data-kursat-theme="dark"] .kursat-policy-toggle>span{background:#3b424a}html[data-kursat-theme="dark"] .kursat-editor-card .kursat-card-head,html[data-kursat-theme="dark"] .kursat-prompt-textarea{background:linear-gradient(180deg,#181c20,#171b1f)}html[data-kursat-theme="dark"] .kursat-editor-insights{background:linear-gradient(90deg,#1c1a25,#211b19)}html[data-kursat-theme="dark"] .kursat-variable-chip{background:#28233f;border-color:#3d3564;color:#ad9fff}html[data-kursat-theme="dark"] .kursat-issue{background:linear-gradient(145deg,#171b1f,#15181c)}html[data-kursat-theme="dark"] .kursat-structure-checks i{background:#23282e}html[data-kursat-theme="dark"] .kursat-structure-checks span.is-ready i{background:#193129;color:#6cd6a6}html[data-kursat-theme="dark"] .kursat-button--smart{background:linear-gradient(135deg,#28233d,#33241e);border-color:#413a60;color:#b7a9ff}html[data-kursat-theme="dark"] .kursat-result-summary{background:linear-gradient(90deg,#181c20,#1b1923)}
+@media(max-width:1180px){.kursat-control-grid{grid-template-columns:repeat(3,1fr)}.kursat-policy-stack{grid-column:1/-1}.kursat-forge-layout{grid-template-columns:minmax(0,1fr) 310px}.kursat-diagnostic-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px){.kursat-content{padding:30px 22px 60px}.kursat-workspace-status{display:none}.kursat-forge-layout{grid-template-columns:1fr}.kursat-preflight{position:static}.kursat-forge-hero h1{font-size:42px}}
+@media(max-width:700px){.kursat-forge-hero{align-items:flex-start}.kursat-forge-hero h1{font-size:36px}.kursat-hero-meta span+span{padding-left:0;border-left:0}.kursat-control-grid{grid-template-columns:1fr}.kursat-policy-stack{grid-template-columns:1fr}.kursat-model-bar{grid-template-columns:repeat(2,1fr)}.kursat-model-option:last-child{grid-column:1/-1}.kursat-editor-insights{align-items:flex-start;flex-direction:column}.kursat-variable-list{justify-content:flex-start}.kursat-diagnostic-grid{grid-template-columns:1fr}.kursat-control-hint{display:none}}
+.kursat-route-card,.kursat-flow-card,.kursat-block-card,.kursat-model-option{transition-property:transform,border-color,box-shadow,background,color,opacity}
+
+/* Frontend kapanış turunda yalnızca gerçek kullanım değerine sahip son durumları ekliyorum. */
+.kursat-editor-action--icon{width:30px;height:30px;padding:0;display:grid;place-items:center}
+.kursat-editor-action--icon svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.kursat-editor-action:disabled{opacity:.34;cursor:not-allowed;background:transparent!important;color:#9098a2!important}
+.kursat-button-shortcut{margin-left:2px;padding:2px 5px;border-radius:5px;border:1px solid rgba(255,255,255,.28);font-size:9px;font-weight:700;line-height:1;color:rgba(255,255,255,.82);background:rgba(0,0,0,.06)}
+.kursat-error-state{display:flex;align-items:center;gap:14px;padding:16px 18px;margin-top:14px;border-color:#eccaca;background:#fffafa}
+.kursat-error-state.kursat-hidden{display:none}
+.kursat-error-icon{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;flex:0 0 auto;background:#fff0f0;color:#b74646}
+.kursat-error-icon svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.kursat-error-copy{display:grid;gap:2px;min-width:0;flex:1}.kursat-error-copy strong{font-size:12.5px}.kursat-error-copy span{font-size:11.5px;color:#7c6262;line-height:1.5}
+.kursat-semantic-changes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:12px}
+.kursat-change-item{display:flex;gap:10px;padding:12px;border:1px solid var(--kursat-line);border-radius:10px;background:var(--kursat-surface-soft)}
+.kursat-change-index{width:25px;height:25px;border-radius:7px;background:var(--kursat-accent-soft);color:#b4522a;display:grid;place-items:center;font-size:9px;font-weight:800;flex:0 0 auto}
+.kursat-change-item div{min-width:0}.kursat-change-item strong{display:block;font-size:11.5px;line-height:1.35}.kursat-change-item p{margin:3px 0 0;color:var(--kursat-muted);font-size:10.8px;line-height:1.5}
+.kursat-shortcut-list{display:grid;margin-top:12px;border-top:1px solid var(--kursat-line)}
+.kursat-shortcut-list>div{min-height:43px;display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid var(--kursat-line);font-size:11.5px;color:#555e68}
+.kursat-shortcut-list kbd{white-space:nowrap;border:1px solid var(--kursat-line-strong);background:var(--kursat-surface-soft);border-radius:6px;padding:3px 7px;color:#6d7580;font-size:9.5px;font-family:inherit;font-weight:700}
+.kursat-result-code:focus-visible{outline:none;box-shadow:inset 0 0 0 2px rgba(230,107,53,.35)}
+html[data-kursat-theme="dark"] .kursat-error-state{background:#22191a;border-color:#593235}
+html[data-kursat-theme="dark"] .kursat-error-icon{background:#352023;color:#ea8888}
+html[data-kursat-theme="dark"] .kursat-error-copy span{color:#ba9898}
+html[data-kursat-theme="dark"] .kursat-change-item,html[data-kursat-theme="dark"] .kursat-shortcut-list kbd{background:#15191d;border-color:#2d333a}
+html[data-kursat-theme="dark"] .kursat-change-index{background:#3a281e;color:#f19468}
+html[data-kursat-theme="dark"] .kursat-shortcut-list{border-color:#2d333a}html[data-kursat-theme="dark"] .kursat-shortcut-list>div{border-color:#2d333a;color:#a6aeb7}
+@media(max-width:760px){
+  .kursat-semantic-changes{grid-template-columns:1fr}
+  .kursat-error-state{align-items:flex-start;flex-wrap:wrap}.kursat-error-state .kursat-button{margin-left:50px}
+  .kursat-button-shortcut{display:none}
+}
+
+@media(max-width:700px){
+  .kursat-forge-layout>*{min-width:0;width:100%;max-width:100%}
+  .kursat-editor-card,.kursat-result,.kursat-preflight,.kursat-result-summary,.kursat-result-tabs,.kursat-result-panel{min-width:0;width:100%;max-width:100%}
+  .kursat-editor-card .kursat-card-head{align-items:flex-start;flex-direction:column}
+  .kursat-editor-toolbar{width:100%}
+  .kursat-forge-action-row{min-width:0;flex-wrap:wrap}
+  .kursat-goal-control{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kursat-goal-option{padding-left:5px;padding-right:5px;white-space:nowrap}
+  .kursat-forge-button{width:100%}
+  .kursat-toast-stack{left:12px;right:12px}.kursat-toast{min-width:0;max-width:none;width:100%}
+}
+
+/* ========================================================================== 
+   PROMPTFORGE — SCOPE-SAFE PREMIUM POLISH
+   Mevcut tasarım dili, layout ve renk sistemi korunur. Yalnızca yüzey kalitesi,
+   feedback ve mikro hareketler rafine edilir.
+   ========================================================================== */
+
+:root{
+  --pf-polish-ease:cubic-bezier(.2,.75,.25,1);
+  --pf-polish-ease-out:cubic-bezier(.16,1,.3,1);
+  --pf-polish-shadow-soft:0 8px 24px rgba(20,23,26,.045);
+  --pf-polish-shadow-hover:0 12px 30px rgba(20,23,26,.065);
+}
+
+/* Üst bar: aynı görünüm, daha rafine katman hissi. */
+.kursat-topbar{
+  backdrop-filter:saturate(135%) blur(12px);
+  -webkit-backdrop-filter:saturate(135%) blur(12px);
+}
+
+/* Kartların şeklini/renklerini değiştirmeden yüzey ayrımını iyileştir. */
+.kursat-card,
+.kursat-route-card,
+.kursat-flow-card,
+.kursat-block-card,
+.kursat-settings-card{
+  transition:border-color .2s ease,box-shadow .28s var(--pf-polish-ease-out),transform .24s var(--pf-polish-ease-out),background .2s ease;
+}
+.kursat-card{box-shadow:0 1px 0 rgba(20,23,26,.018),var(--pf-polish-shadow-soft)}
+
+/* Navigation: mevcut koyu sidebar karakteri korunur; aktiflik daha net hissedilir. */
+.kursat-nav-button{position:relative;overflow:hidden}
+.kursat-nav-button::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:50%;
+  width:2px;
+  height:0;
+  border-radius:0 3px 3px 0;
+  background:var(--kursat-accent);
+  transform:translateY(-50%);
+  opacity:0;
+  transition:height .24s var(--pf-polish-ease-out),opacity .18s ease;
+}
+.kursat-nav-button.is-active::before{height:18px;opacity:1}
+.kursat-nav-button:hover .kursat-nav-icon{transform:translateX(1px)}
+.kursat-nav-icon{transition:color .18s ease,transform .22s var(--pf-polish-ease-out)}
+
+/* Butonlar: yeni stil değil, mevcut stilin daha kontrollü tactile feedback'i. */
+.kursat-button,
+.kursat-command-button,
+.kursat-user-button,
+.kursat-icon-button,
+.kursat-editor-action,
+.kursat-model-option,
+.kursat-goal-option{
+  -webkit-tap-highlight-color:transparent;
+}
+.kursat-button:active,
+.kursat-command-button:active,
+.kursat-user-button:active,
+.kursat-icon-button:active{transform:translateY(0) scale(.985)}
+.kursat-button--accent:hover{box-shadow:0 8px 20px rgba(230,107,53,.17)}
+.kursat-button--primary:hover{box-shadow:0 8px 20px rgba(20,23,26,.13)}
+
+/* Model seçimi: mevcut kartların boyutu/yerleşimi korunur. */
+.kursat-model-option:hover{transform:translateY(-1px)}
+.kursat-model-option.is-active{box-shadow:0 4px 14px rgba(20,23,26,.055)}
+.kursat-model-glyph{transition:transform .24s var(--pf-polish-ease-out),background .2s ease,color .2s ease}
+.kursat-model-option:hover .kursat-model-glyph{transform:scale(1.035)}
+.kursat-model-option:active{transform:translateY(0) scale(.992)}
+
+/* Ana editör: mevcut beyaz canvas aynen kalır, focus sırasında daha kaliteli derinlik. */
+.kursat-editor-card{
+  transition:border-color .2s ease,box-shadow .3s var(--pf-polish-ease-out),transform .3s var(--pf-polish-ease-out);
+}
+.kursat-editor-card:focus-within{
+  transform:translateY(-1px);
+  box-shadow:0 1px 0 rgba(20,23,26,.02),0 16px 38px rgba(20,23,26,.07),0 0 0 3px rgba(230,107,53,.055);
+}
+.kursat-prompt-textarea{caret-color:var(--kursat-accent)}
+.kursat-prompt-textarea::placeholder{transition:color .18s ease}
+.kursat-prompt-textarea:focus::placeholder{color:#c1c6cd}
+
+/* Toolbar öğeleri yalnızca hover feedback alır; yerleşim değişmez. */
+.kursat-editor-action:hover{transform:translateY(-1px)}
+.kursat-editor-action:active{transform:translateY(0) scale(.98)}
+
+/* Prompt analizi ve durumlar: agresif glow yok, küçük durum feedback'i. */
+.kursat-score-orbit{transition:transform .32s var(--pf-polish-ease-out),filter .28s ease}
+.kursat-preflight:hover .kursat-score-orbit{transform:scale(1.025)}
+.kursat-status-dot.is-ready{animation:pfStatusBreath 2.8s ease-in-out infinite}
+@keyframes pfStatusBreath{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+
+/* Tablo/liste yüzeylerinde satır okumasını kolaylaştıran minimal hover. */
+.kursat-table tbody tr{transition:background .16s ease}
+.kursat-table tbody tr:hover{background:#fafbfc}
+.kursat-setting-row{transition:background .18s ease}
+.kursat-setting-row:hover{background:rgba(20,23,26,.018)}
+
+/* Modal/command/toast: mevcut bileşenlerin açılışını daha doğal yap. */
+.kursat-modal-backdrop.is-open{animation:pfBackdropIn .18s ease both}
+.kursat-modal-backdrop.is-open .kursat-modal{animation:pfModalIn .26s var(--pf-polish-ease-out) both}
+@keyframes pfBackdropIn{from{opacity:0}to{opacity:1}}
+@keyframes pfModalIn{from{opacity:0;transform:translateY(8px) scale(.992)}to{opacity:1;transform:none}}
+.kursat-toast{animation:pfToastIn .3s var(--pf-polish-ease-out) both}
+@keyframes pfToastIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+
+/* View geçişi: sadece hafif opacity/y hareketi; içerik kompozisyonuna dokunmaz. */
+.kursat-view.is-active{animation:pfViewIn .28s var(--pf-polish-ease-out) both}
+@keyframes pfViewIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+/* Focus-visible erişilebilirliğini tasarımla uyumlu hale getir. */
+.kursat-button:focus-visible,
+.kursat-command-button:focus-visible,
+.kursat-user-button:focus-visible,
+.kursat-icon-button:focus-visible,
+.kursat-model-option:focus-visible,
+.kursat-nav-button:focus-visible,
+.kursat-editor-action:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 3px rgba(230,107,53,.14);
+}
+
+/* Dark theme'de aynı polish; yeni renk veya glow eklenmez. */
+html[data-kursat-theme="dark"] .kursat-card{box-shadow:0 1px 0 rgba(255,255,255,.015),0 10px 28px rgba(0,0,0,.13)}
+html[data-kursat-theme="dark"] .kursat-editor-card:focus-within{box-shadow:0 12px 34px rgba(0,0,0,.19),0 0 0 3px rgba(230,107,53,.08)}
+html[data-kursat-theme="dark"] .kursat-table tbody tr:hover{background:rgba(255,255,255,.018)}
+html[data-kursat-theme="dark"] .kursat-setting-row:hover{background:rgba(255,255,255,.015)}
+
+/* Mobilde hover kaynaklı hareket yok; mevcut responsive tasarım aynen kalır. */
+@media (hover:none){
+  .kursat-model-option:hover,
+  .kursat-editor-action:hover,
+  .kursat-button:hover{transform:none}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .kursat-status-dot.is-ready{animation:none!important}
+}
+
+
+/* Refined product pass */
+body{overflow-x:hidden;background:linear-gradient(180deg,#f7f8fb 0%,#f4f6f9 100%)}
+.kursat-sidebar,.kursat-nav,.kursat-main,.kursat-topbar,.kursat-content{overflow-x:hidden}
+.kursat-sidebar{box-shadow:18px 0 42px rgba(15,23,42,.06)}
+.kursat-brand-copy small{display:none}
+.kursat-nav-button{position:relative;min-width:0}
+.kursat-nav-button span:last-child{white-space:normal;line-height:1.25}
+.kursat-nav-button.is-active{background:linear-gradient(180deg,#23272d 0%,#1d2126 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 8px 18px rgba(0,0,0,.14)}
+.kursat-sidebar-footer{padding:18px 8px 4px}
+.kursat-sidebar-footer strong{font-size:13px;margin-bottom:6px}
+.kursat-sidebar-footer p{font-size:11.5px;color:#9ca4ae;margin-bottom:12px}
+.kursat-sidebar-cta{width:100%;height:36px;border:1px solid rgba(255,255,255,.09);background:linear-gradient(180deg,#262c33 0%,#1f242a 100%);color:#fff;border-radius:10px;font-weight:700;letter-spacing:-.01em;transition:transform var(--kursat-motion-fast) var(--kursat-ease),border-color var(--kursat-motion-fast) var(--kursat-ease),background var(--kursat-motion-fast) var(--kursat-ease)}
+.kursat-sidebar-cta:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.15);background:linear-gradient(180deg,#2d343c 0%,#22272d 100%)}
+.kursat-topbar{backdrop-filter:saturate(1.2) blur(14px);box-shadow:0 10px 30px rgba(15,23,42,.04)}
+.kursat-workspace-status{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 12px;border:1px solid var(--kursat-line);background:rgba(255,255,255,.88);border-radius:999px;color:#49515c;font-size:12px;font-weight:650}
+.kursat-workspace-status i{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.12)}
+.kursat-command-button,.kursat-user-button,.kursat-icon-button,.kursat-button,.kursat-card,.kursat-model-bar,.kursat-control-deck{transition:transform var(--kursat-motion-fast) var(--kursat-ease),box-shadow var(--kursat-motion-fast) var(--kursat-ease),border-color var(--kursat-motion-fast) var(--kursat-ease),background var(--kursat-motion-fast) var(--kursat-ease)}
+.kursat-card{box-shadow:0 1px 1px rgba(15,23,42,.02),0 10px 30px rgba(15,23,42,.04)}
+.kursat-card:hover{box-shadow:0 1px 1px rgba(15,23,42,.02),0 14px 34px rgba(15,23,42,.06)}
+.kursat-page-head{margin-bottom:22px}
+.kursat-forge-hero{align-items:center;padding:4px 0 8px}
+.kursat-forge-hero h1{font-size:40px;line-height:1.05;letter-spacing:-.05em}
+.kursat-forge-hero h1 em{font-style:normal;background:linear-gradient(92deg,#111827 10%,#e66b35 88%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.kursat-forge-hero p{font-size:15px;line-height:1.7;max-width:700px}
+.kursat-hero-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.kursat-hero-meta span{display:inline-flex;align-items:center;gap:8px;padding:7px 11px;border-radius:999px;background:#fff;border:1px solid #e7eaf0;color:#5d6570;font-size:12px;font-weight:650}.kursat-hero-meta span::before{content:"";width:7px;height:7px;border-radius:50%;background:#e66b35;box-shadow:0 0 0 4px rgba(230,107,53,.12)}
+.kursat-model-bar{background:linear-gradient(180deg,#fff 0%,#fbfcfd 100%);padding:12px;box-shadow:0 1px 1px rgba(15,23,42,.02),0 8px 24px rgba(15,23,42,.04)}
+.kursat-model-option{min-height:56px}.kursat-model-option.is-active{transform:translateY(-1px);box-shadow:0 10px 24px rgba(15,23,42,.06)}
+.kursat-control-deck{background:linear-gradient(180deg,#fff 0%,#fbfcfd 100%);padding:18px;border-radius:16px;margin-bottom:16px;box-shadow:0 1px 1px rgba(15,23,42,.02),0 10px 26px rgba(15,23,42,.04)}
+.kursat-feature-strip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:0 0 18px}.kursat-feature-tile{background:linear-gradient(180deg,#fff 0%,#fafbfc 100%);border:1px solid var(--kursat-line);border-radius:16px;padding:16px;display:flex;gap:12px;align-items:flex-start;box-shadow:0 8px 24px rgba(15,23,42,.04)}.kursat-feature-index{width:32px;height:32px;flex:0 0 auto;display:grid;place-items:center;border-radius:10px;background:var(--kursat-accent-soft);color:#c65b2b;font-size:11px;font-weight:800}.kursat-feature-tile strong{display:block;font-size:13px;letter-spacing:-.01em;margin-bottom:4px}.kursat-feature-tile p{margin:0;color:#717986;font-size:12px;line-height:1.6}
+.kursat-section-head h2{margin:4px 0 0;font-size:24px;letter-spacing:-.03em}.kursat-section-head p{margin:8px 0 0;color:var(--kursat-muted);font-size:14px}
+.kursat-example-section{margin:0 0 20px}.kursat-example-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:14px}.kursat-example-card{border:1px solid var(--kursat-line);border-radius:16px;padding:18px;background:linear-gradient(180deg,#fff 0%,#fbfcfd 100%);text-align:left;box-shadow:0 10px 24px rgba(15,23,42,.04);display:grid;gap:10px;min-height:168px}.kursat-example-card:hover{transform:translateY(-2px);border-color:#d8dde4;box-shadow:0 14px 30px rgba(15,23,42,.07)}.kursat-example-card strong{font-size:15px;letter-spacing:-.02em;color:#1f2730}.kursat-example-card p{margin:0;color:#6f7782;font-size:12.5px;line-height:1.65}.kursat-example-tag{display:inline-flex;align-items:center;align-self:flex-start;padding:5px 9px;border-radius:999px;background:#f5f7fa;border:1px solid #e7ebf0;color:#5f6874;font-size:10.5px;font-weight:750;text-transform:uppercase;letter-spacing:.05em}
+.kursat-editor-card:focus-within,.kursat-preflight:hover,.kursat-control-deck:hover{box-shadow:0 18px 38px rgba(15,23,42,.08),0 0 0 3px rgba(230,107,53,.08)}
+.kursat-prompt-textarea{background:linear-gradient(180deg,#ffffff 0%,#fdfefe 100%)}
+.kursat-preflight{position:sticky;top:84px}
+.kursat-process,.kursat-result,.kursat-preflight,.kursat-editor-card{border-radius:18px}
+.kursat-topbar.is-scrolled{background:rgba(247,248,251,.78)}
+html[data-kursat-density="compact"] .kursat-example-card{min-height:152px;padding:16px}
+html[data-kursat-theme="dark"] .kursat-workspace-status{background:rgba(24,28,32,.88);border-color:#2d333a;color:#d9dee3}
+html[data-kursat-theme="dark"] .kursat-sidebar-cta{background:linear-gradient(180deg,#2f3842 0%,#232a31 100%)}
+html[data-kursat-theme="dark"] .kursat-feature-tile,html[data-kursat-theme="dark"] .kursat-example-card{background:linear-gradient(180deg,#181c20 0%,#171b1f 100%);border-color:#2d333a;box-shadow:0 10px 28px rgba(0,0,0,.16)}
+html[data-kursat-theme="dark"] .kursat-example-tag{background:#20252a;border-color:#2d333a;color:#b8c0c9}
+html[data-kursat-theme="dark"] .kursat-hero-meta span{background:#181c20;border-color:#2d333a;color:#c7ced6}
+html[data-kursat-theme="dark"] .kursat-workspace-status i{box-shadow:0 0 0 4px rgba(34,197,94,.1)}
+@media (max-width:1200px){.kursat-feature-strip,.kursat-example-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:820px){.kursat-topbar{height:auto;padding:12px 16px;align-items:flex-start;flex-wrap:wrap;gap:10px}.kursat-topbar-actions{width:100%;flex-wrap:wrap;justify-content:flex-start}.kursat-workspace-status{order:1}.kursat-command-button{flex:1 1 auto;min-width:0}.kursat-page-context strong{white-space:normal}.kursat-page-context{gap:4px}.kursat-topbar-left{width:100%}}
+@media (max-width:700px){.kursat-feature-strip,.kursat-example-grid{grid-template-columns:1fr}.kursat-forge-hero h1{font-size:32px}.kursat-section-head h2{font-size:22px}}

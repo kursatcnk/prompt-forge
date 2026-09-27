@@ -31,28 +31,29 @@ namespace PromptForge.Api.Services
         /// <summary>
         /// Yeni kullanıcıyı kaydeder.
         /// </summary>
-        public async Task<(bool success, string? token, string? error)> RegisterAsync(
+        public async Task<(bool success, string? token, string? error, User? user)> RegisterAsync(
             string email,
             string password,
             string displayName)
         {
             // Validation: Email boş mı?
             if (string.IsNullOrWhiteSpace(email))
-                return (false, null, "Email boş olamaz.");
+                return (false, null, "Email boş olamaz.", null);
 
             // Validation: Şifre boş mı?
             if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
-                return (false, null, "Şifre en az 6 karakter olmalıdır.");
+                return (false, null, "Şifre en az 6 karakter olmalıdır.", null);
+
+            // Email'i standart hale getir: boşlukları sil, küçük harfe çevir.
+            // Böylece "Ahmet@X.com" ile "ahmet@x.com" aynı hesap sayılır.
+            email = NormalizeEmail(email);
 
             // Kontrol: Email zaten kayıtlı mı?
-            var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == email);
+            var emailTaken = await _context.Users.AnyAsync(u => u.Email == email);
+            if (emailTaken)
+                return (false, null, "Bu email zaten kayıtlı.", null);
 
-            if (existingUser != null)
-                return (false, null, "Bu email zaten kayıtlı.");
-
-            // Şifreyi hash'le (güvenlik).
-            // BCrypt yerine basit örnek: production'da BCrypt kullan.
+            // Şifreyi BCrypt ile hash'le. Veritabanına asla düz şifre yazılmaz.
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
 
             // Yeni kullanıcı oluştur.
@@ -62,61 +63,55 @@ namespace PromptForge.Api.Services
                 Email = email,
                 PasswordHash = passwordHash,
                 // Görünen ad girilmediyse email'in @ öncesini kullan (ahmet@x.com → ahmet).
-                DisplayName = string.IsNullOrWhiteSpace(displayName) ? email.Split('@')[0] : displayName,
+                DisplayName = string.IsNullOrWhiteSpace(displayName) ? email.Split('@')[0] : displayName.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                IsActive = true
+                IsActive = true,
+                // Varsayılan ayarları kullanıcıyla birlikte oluştur; tek SaveChanges ile ikisi birden kaydolur.
+                Settings = new UserSettings { Id = Guid.NewGuid() }
             };
 
-            // Veritabanına ekle.
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Varsayılan ayarları oluştur.
-            var settings = new UserSettings
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id
-            };
-            _context.UserSettings.Add(settings);
-            await _context.SaveChangesAsync();
-
-            // Token oluştur ve dön.
-            var token = GenerateJwtToken(user.Id.ToString(), user.Email ?? "");
-            return (true, token, null);
+            // Kayıt sonrası otomatik giriş: token üret ve dön.
+            var token = GenerateJwtToken(user.Id.ToString(), user.Email);
+            return (true, token, null, user);
         }
 
         /// <summary>
         /// Kullanıcı girişi (login).
         /// </summary>
-        public async Task<(bool success, string? token, string? error)> LoginAsync(
+        public async Task<(bool success, string? token, string? error, User? user)> LoginAsync(
             string email,
             string password)
         {
             // Validation
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                return (false, null, "Email ve şifre gerekli.");
+                return (false, null, "Email ve şifre gerekli.", null);
+
+            email = NormalizeEmail(email);
 
             // Email ile kullanıcıyı bul.
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-            // Kullanıcı bulunamadı.
+            // Kullanıcı yoksa da, şifre yanlışsa da aynı mesajı veriyoruz.
+            // Böylece kötü niyetli biri "bu email kayıtlı mı?" bilgisini öğrenemez.
             if (user == null)
-                return (false, null, "Email veya şifre yanlış.");
+                return (false, null, "Email veya şifre yanlış.", null);
 
             // Hesap aktif mi?
             if (!user.IsActive)
-                return (false, null, "Hesap deaktive edilmiş.");
+                return (false, null, "Hesap deaktive edilmiş.", null);
 
-            // Şifre doğru mu? (hash'i kıyasla)
+            // Girilen şifreyi, kayıtlı hash ile karşılaştır.
             var isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
             if (!isPasswordValid)
-                return (false, null, "Email veya şifre yanlış.");
+                return (false, null, "Email veya şifre yanlış.", null);
 
             // Şifre doğruysa token oluştur.
-            var token = GenerateJwtToken(user.Id.ToString(), user.Email ?? "");
-            return (true, token, null);
+            var token = GenerateJwtToken(user.Id.ToString(), user.Email);
+            return (true, token, null, user);
         }
 
         /// <summary>
@@ -190,6 +185,9 @@ namespace PromptForge.Api.Services
 
             return null;
         }
+
+        // Email karşılaştırmaları büyük/küçük harfe takılmasın diye tek formata çeviririz.
+        private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
         /// <summary>
         /// JWT token'ı oluşturur.

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using PromptForge.Api.Dtos;
+using PromptForge.Api.Models;
 using PromptForge.Api.Services;
 
 namespace PromptForge.Api.Controllers
@@ -75,7 +76,7 @@ namespace PromptForge.Api.Controllers
             try
             {
                 // UserService'i çağır (kayıt işlemi).
-                var (success, token, error) = await _userService.RegisterAsync(
+                var (success, token, error, user) = await _userService.RegisterAsync(
                     request.Email,
                     request.Password ?? "",
                     request.DisplayName ?? ""
@@ -88,19 +89,15 @@ namespace PromptForge.Api.Controllers
                         Message = error
                     });
 
-                // Başarılı: token dön.
-                _logger.LogInformation($"Yeni kullanıcı kaydı: {request.Email}");
+                // Başarılı: token ve kullanıcı bilgisini dön.
+                _logger.LogInformation("Yeni kullanıcı kaydı: {Email}", user!.Email);
 
                 return Ok(new AuthResponse
                 {
                     Success = true,
                     Token = token,
                     Message = "Kayıt başarılı. Otomatik giriş yapıldı.",
-                    User = new UserInfo
-                    {
-                        Email = request.Email,
-                        DisplayName = request.DisplayName
-                    }
+                    User = ToUserInfo(user)
                 });
             }
             catch (Exception ex)
@@ -152,7 +149,7 @@ namespace PromptForge.Api.Controllers
             try
             {
                 // UserService'i çağır (giriş işlemi).
-                var (success, token, error) = await _userService.LoginAsync(
+                var (success, token, error, user) = await _userService.LoginAsync(
                     request.Email,
                     request.Password ?? ""
                 );
@@ -164,14 +161,15 @@ namespace PromptForge.Api.Controllers
                         Message = error
                     });
 
-                // Başarılı: token dön.
-                _logger.LogInformation($"Kullanıcı girişi: {request.Email}");
+                // Başarılı: token ve kullanıcı bilgisini dön (arayüz adını gösterebilsin).
+                _logger.LogInformation("Kullanıcı girişi: {Email}", user!.Email);
 
                 return Ok(new AuthResponse
                 {
                     Success = true,
                     Token = token,
-                    Message = "Giriş başarılı"
+                    Message = "Giriş başarılı",
+                    User = ToUserInfo(user)
                 });
             }
             catch (Exception ex)
@@ -184,5 +182,14 @@ namespace PromptForge.Api.Controllers
                 });
             }
         }
+
+        // Veritabanı modelini dışarıya güvenli DTO'ya çevirir; şifre hash'i asla dışarı çıkmaz.
+        private static UserInfo ToUserInfo(User user) => new()
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName,
+            Avatar = user.Avatar
+        };
     }
 }

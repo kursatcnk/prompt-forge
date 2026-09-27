@@ -104,6 +104,13 @@ if (app.Environment.IsDevelopment())
 /// Production'da önemlidir.
 app.UseHttpsRedirection();
 
+/// wwwroot klasöründeki arayüz dosyalarını (HTML, CSS, JS) sun.
+/// UseDefaultFiles: http://localhost:5299/ adresine gelince index.html'i açar.
+/// UseStaticFiles: /app.html, /auth/sign-in.html gibi dosyaları olduğu gibi gönderir.
+/// Böylece site ve API aynı adreste çalışır.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 /// Önceki CORS politikasını uygula.
 /// Frontend'in API'ye erişebilmesini sağla.
 app.UseCors("AllowAll");

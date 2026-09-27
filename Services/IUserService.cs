@@ -1,3 +1,5 @@
+using PromptForge.Api.Models;
+
 namespace PromptForge.Api.Services
 {
     /// <summary>
@@ -20,10 +22,10 @@ namespace PromptForge.Api.Services
         /// 4. Token dön (otomatik login)
         ///
         /// DÖNÜŞ:
-        /// - Success: (true, token, null)
-        /// - Hata: (false, null, error message)
+        /// - Success: (true, token, null, user)
+        /// - Hata: (false, null, error message, null)
         /// </summary>
-        Task<(bool success, string? token, string? error)> RegisterAsync(
+        Task<(bool success, string? token, string? error, User? user)> RegisterAsync(
             string email,
             string password,
             string displayName);
@@ -37,7 +39,7 @@ namespace PromptForge.Api.Services
         /// 3. Eşleşirse token dön
         /// 4. Değilse hata dön
         /// </summary>
-        Task<(bool success, string? token, string? error)> LoginAsync(
+        Task<(bool success, string? token, string? error, User? user)> LoginAsync(
             string email,
             string password);
 
