@@ -46,9 +46,68 @@
     ["Ayarlar", "Çalışma alanını yönet", "settings"]
   ];
 
-  // Frontend-only sürümde state yalnızca açık sayfa yaşam döngüsünde tutulur.
-  function kursatLoadStorage() {}
-  function kursatSaveStorage() {}
+  const session = window.PromptForgeSession;
+  // Sunucuya kaydedilen tercih alanları (SettingsDto ile aynı adlar).
+  const kursatSettingKeys = ["model", "goal", "theme", "density", "motion", "useCase", "responseFormat", "responseLanguage", "askClarifying", "exposeAssumptions"];
+  let kursatSaveTimer = 0;
+
+  // Açılışta son kayıtlı görünümü yerelden al; hesaptaki gerçek ayarlar kursatBootstrap ile gelir.
+  function kursatLoadStorage() {
+    const appearance = session?.readAppearance();
+    if (!appearance) return;
+    if (["light", "dark", "system"].includes(appearance.theme)) kursatState.theme = appearance.theme;
+    if (["comfortable", "compact"].includes(appearance.density)) kursatState.density = appearance.density;
+    if (["on", "off"].includes(appearance.motion)) kursatState.motion = appearance.motion;
+  }
+
+  // Her değişiklikte hemen istek atmak yerine 600 ms bekleyip tek istekte kaydediyoruz (art arda tıklamalarda gereksiz trafik olmasın).
+  function kursatSaveStorage() {
+    session?.saveAppearance({ theme: kursatState.theme, density: kursatState.density, motion: kursatState.motion });
+    window.clearTimeout(kursatSaveTimer);
+    kursatSaveTimer = window.setTimeout(async () => {
+      const body = Object.fromEntries(kursatSettingKeys.map(key => [key, kursatState[key]]));
+      const { ok } = await session.api.put("/api/account/settings", body);
+      if (!ok) kursatToast("Ayarlar kaydedilemedi", "Bağlantını kontrol edip tekrar dene.");
+    }, 600);
+  }
+
+  // Açılışta hesap, geçmiş ve favorileri paralel olarak yükle.
+  async function kursatBootstrap() {
+    const [me, history, favorites] = await Promise.all([
+      session.api.get("/api/account/me"),
+      session.api.get("/api/prompts"),
+      session.api.get("/api/favorites")
+    ]);
+
+    if (me.ok && me.data) {
+      kursatState.account = me.data;
+      kursatSettingKeys.forEach(key => { if (me.data.settings?.[key] !== undefined) kursatState[key] = me.data.settings[key]; });
+      session.saveAppearance({ theme: kursatState.theme, density: kursatState.density, motion: kursatState.motion });
+      kursatRenderUser(me.data.user);
+      kursatApplyAppearance();
+      document.dispatchEvent(new CustomEvent("kursat:defaults-changed", { detail: { model: kursatState.model, goal: kursatState.goal } }));
+      document.dispatchEvent(new CustomEvent("kursat:account-loaded", { detail: me.data }));
+    } else if (me.status !== 401) {
+      kursatToast("Hesap bilgileri yüklenemedi", me.data?.message || "Sayfayı yenilemeyi dene.");
+    }
+
+    if (history.ok && Array.isArray(history.data)) kursatState.history = history.data;
+    if (favorites.ok && Array.isArray(favorites.data)) kursatState.favorites = favorites.data;
+    document.dispatchEvent(new CustomEvent("kursat:data-changed"));
+  }
+
+  // Üst bardaki "Hesabım" butonunda adı ve baş harfleri göster.
+  function kursatRenderUser(user) {
+    if (!user?.displayName) return;
+    const userButton = document.querySelector(".kursat-user-button");
+    const initials = user.displayName.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join("").toLocaleUpperCase("tr-TR");
+    const avatar = userButton?.querySelector(".kursat-avatar");
+    const label = userButton?.querySelector("span:not(.kursat-avatar)");
+    if (avatar) avatar.textContent = initials;
+    if (label) label.textContent = user.displayName;
+    userButton?.setAttribute("title", user.email || user.displayName);
+    session?.updateUser({ id: user.id, email: user.email, displayName: user.displayName });
+  }
 
   // Tema ve yoğunluğu tek noktadan uyguluyorum; farklı ekranların kendi renk sistemini üretmesini istemiyorum.
   function kursatResolveTheme() {
@@ -273,6 +332,7 @@
       if (commandView) { kursatCloseCommand(); kursatOpenView(commandView.dataset.kursatCommandView); }
       if (event.target === document.querySelector("#kursat-command-backdrop")) kursatCloseCommand();
       if (event.target === document.querySelector("#kursat-confirm-backdrop")) kursatCloseConfirm();
+      if (event.target === document.querySelector("#kursat-panel-backdrop") || event.target.closest("[data-kursat-panel-close]")) kursatCloseBackdrop(document.querySelector("#kursat-panel-backdrop"));
     });
 
     document.querySelector("#kursat-mobile-menu")?.addEventListener("click", kursatOpenSidebar);
@@ -298,17 +358,8 @@
       window.location.href = "auth/log-out.html";
     });
 
-    // Giriş yapan kullanıcının adını ve baş harflerini üst bardaki "Hesabım" butonunda göster.
-    const kursatUser = window.PromptForgeSession?.getUser();
-    if (kursatUser?.displayName) {
-      const userButton = document.querySelector(".kursat-user-button");
-      const initials = kursatUser.displayName.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join("").toLocaleUpperCase("tr-TR");
-      const avatar = userButton?.querySelector(".kursat-avatar");
-      const label = userButton?.querySelector("span:not(.kursat-avatar)");
-      if (avatar) avatar.textContent = initials;
-      if (label) label.textContent = kursatUser.displayName;
-      userButton?.setAttribute("title", kursatUser.email || kursatUser.displayName);
-    }
+    // Sunucu cevabını beklemeden, girişte saklanan adla hemen göster.
+    kursatRenderUser(session?.getUser());
 
     window.addEventListener("keydown", event => {
       kursatTrapModalFocus(event);
@@ -317,6 +368,7 @@
         if (document.body.classList.contains("kursat-editor-focus")) document.dispatchEvent(new CustomEvent("kursat:close-editor-focus"));
         kursatCloseCommand();
         kursatCloseConfirm();
+        kursatCloseBackdrop(document.querySelector("#kursat-panel-backdrop"));
         kursatCloseSidebar();
       }
     });
@@ -352,6 +404,13 @@
     openView: kursatOpenView,
     confirm: kursatOpenConfirm,
     closeConfirm: kursatCloseConfirm,
-    applyAppearance: kursatApplyAppearance
+    applyAppearance: kursatApplyAppearance,
+    openBackdrop: kursatOpenBackdrop,
+    closeBackdrop: kursatCloseBackdrop,
+    renderUser: kursatRenderUser,
+    api: session.api
   };
+
+  // Diğer dosyalar (forge, library, account) PF'ye erişebildikten sonra sunucudan veriyi yükle.
+  document.addEventListener("DOMContentLoaded", kursatBootstrap);
 })();

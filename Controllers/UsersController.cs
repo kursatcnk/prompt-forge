@@ -6,14 +6,12 @@ using PromptForge.Api.Services;
 namespace PromptForge.Api.Controllers
 {
     /// <summary>
-    /// Kullanıcı işlemleri controller'ı.
+    /// GELİŞTİRİCİ ARACI: Tüm kullanıcıları listeler.
     ///
-    /// ENDPOINT'LER:
-    /// GET /api/users → Tüm kullanıcıları listeler
+    /// GET /api/users → Tüm kullanıcılar (en yeni kayıt en üstte)
     ///
-    /// [Authorize]: Bu controller'daki her endpoint giriş yapmış olmayı gerektirir.
-    /// İstek "Authorization: Bearer {token}" başlığı olmadan gelirse 401 Unauthorized döner.
-    /// Token'ın kontrolünü biz yazmıyoruz; Program.cs'deki AddJwtBearer ayarı otomatik yapıyor.
+    /// Güvenlik: [Authorize] ile sadece giriş yapmış kişiler erişebilir ve sadece Development ortamında çalışır.
+    /// Canlıda herkesin tüm e-postaları görmesi veri sızıntısı olurdu; orada 404 döner.
     /// </summary>
     [ApiController]
     [Route("api/[controller]")]
@@ -21,29 +19,19 @@ namespace PromptForge.Api.Controllers
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IWebHostEnvironment _environment;
 
-        public UsersController(IUserService userService)
+        public UsersController(IUserService userService, IWebHostEnvironment environment)
         {
             _userService = userService;
+            _environment = environment;
         }
 
-        /// <summary>
-        /// Tüm kullanıcıları listeler (en yeni kayıt en üstte).
-        ///
-        /// ÖRNEK ISTEK:
-        /// GET /api/users
-        /// Authorization: Bearer eyJhbGciOi...
-        ///
-        /// BAŞARILI YANIT (200):
-        /// [
-        ///   { "id": "...", "email": "ahmet@example.com", "displayName": "Ahmet", "avatar": null }
-        /// ]
-        /// </summary>
         [HttpGet]
         public async Task<ActionResult<List<UserInfo>>> GetAll()
         {
-            var users = await _userService.GetAllUsersAsync();
-            return Ok(users);
+            if (!_environment.IsDevelopment()) return NotFound();
+            return Ok(await _userService.GetAllUsersAsync());
         }
     }
 }

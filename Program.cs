@@ -1,39 +1,36 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
-using PromptForge.Api.Data;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using PromptForge.Api.Data;
 using PromptForge.Api.Services;
+using PromptForge.Api.Services.Ai;
 
 /// ====================================================================
 /// PromptForge ASP.NET Core Web API - Uygulama Başlangıç Noktası
 /// ====================================================================
 ///
-/// GÖREV: Backend API'ni konfigüre etmek ve başlatmak.
+/// GÖREV: Servisleri kaydetmek, istek sırasını (middleware) kurmak ve uygulamayı başlatmak.
 ///
 /// AKIŞ:
-/// 1. WebApplication.CreateBuilder() → Services ekle
-/// 2. app.Build() → Middleware'i konfigüre et
-/// 3. app.Run() → API'yi başlat ve HTTP istekleri bekle
+/// 1. WebApplication.CreateBuilder() → Servisleri ekle (Dependency Injection)
+/// 2. app.Build() → Middleware sırasını kur
+/// 3. app.Run() → Uygulamayı başlat ve HTTP isteklerini bekle
 ///
 /// ====================================================================
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ===== 1. SERVISLER EKLEME (Dependency Injection) =====
+// Canlı ortamda örnek JWT anahtarıyla çalışmayı engelle: bu anahtar GitHub'da herkese açık.
+const string SampleJwtSecret = "your-super-secret-key-minimum-32-characters-long-here-12345678";
+if (!builder.Environment.IsDevelopment() && builder.Configuration["Jwt:Secret"] == SampleJwtSecret)
+    throw new InvalidOperationException("Jwt:Secret canlı ortamda değiştirilmeli (user secrets veya ortam değişkeni ile).");
 
-/// Denetleyiciler (Controllers) eklenir.
-/// Controllers HTTP istekleri alıp cevap verir.
+// ===== 1. API VE SWAGGER =====
+
 builder.Services.AddControllers();
-
-/// Swagger/OpenAPI desteği eklenir.
-/// /swagger adresinde API dokümantasyonu gösterilir.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -57,10 +54,9 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-/// ===== KİMLİK DOĞRULAMA (JWT) =====
+// ===== 2. KİMLİK DOĞRULAMA (JWT) =====
 
-/// Gelen isteklerdeki "Authorization: Bearer {token}" başlığını otomatik kontrol eder.
-/// Token'ı üretirken kullandığımız ayarların aynısıyla doğrular (UserService.GenerateJwtToken):
+/// Gelen isteklerdeki "Authorization: Bearer {token}" başlığını otomatik kontrol eder:
 /// - İmza bizim gizli anahtarımızla mı atılmış? (sahte token'ı engeller)
 /// - Issuer/Audience doğru mu? (başka bir uygulamanın token'ını engeller)
 /// - Süresi dolmuş mu?
@@ -71,8 +67,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(
-                Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"] ?? "")),
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Secret"] ?? "")),
             ValidateIssuer = true,
             ValidIssuer = builder.Configuration["Jwt:Issuer"],
             ValidateAudience = true,
@@ -82,100 +77,92 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-/// ===== 2. VERİTABANI BAĞLANTISI =====
+// ===== 3. RATE LIMITING (deneme sınırı) =====
 
-/// appsettings.json'dan connection string'i oku.
-/// Örn: "Server=localhost;Database=PromptForge;..."
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-/// Entity Framework Core'u SQL Server ile ekle.
-/// DbContext'i dependency injection container'ına kaydet.
-/// Daha sonra controllers'da şu şekilde kullanılır:
-/// public UserController(PromptForgeDbContext context) => _context = context;
-builder.Services.AddDbContext<PromptForgeDbContext>(options =>
-    options.UseSqlServer(connectionString, sqlServerOptions =>
-        sqlServerOptions.EnableRetryOnFailure(maxRetryCount: 5)));
-
-/// ===== SERVIS KATMANI =====
-
-/// UserService'i ekle (Authentication işlemleri).
-/// IUserService interface'ini uygulamak için UserService sınıfını kaydet.
-/// Şu şekilde çağırılır: public AuthController(IUserService userService) => _userService = userService;
-builder.Services.AddScoped<IUserService, UserService>();
-
-/// ===== 3. CORS (Cross-Origin Resource Sharing) =====
-
-/// Frontend (app.html) backend API'ye erişebilmesi için CORS açılır.
-///
-/// NEDEN GEREKLİ?
-/// Frontend: http://localhost:3000 (tarayıcıda)
-/// Backend: http://localhost:5000 (API)
-/// Tarayıcı güvenlik sebebiyle farklı domain'den istek reddeder.
-/// CORS bunu kontrol eder.
-///
-/// "AllowAll" politikası:
-/// - Herhangi bir kaynaktan istek kabul et (geliştirme aşamasında).
-/// - Production'da daha restrictive olmalıdır.
-builder.Services.AddCors(options =>
+/// Giriş, kayıt ve şifre sıfırlama endpoint'lerinde aynı IP'den dakikada en fazla 10 istek.
+/// Şifre tahmin (brute force) ve e-posta bombardımanı saldırılarını yavaşlatır. Aşılırsa 429 döner.
+builder.Services.AddRateLimiter(options =>
 {
-    options.AddPolicy("AllowAll", policy =>
-    {
-        /// Tüm kaynaktan (origin) istek kabul et.
-        policy.AllowAnyOrigin()
-              /// Tüm HTTP metodlarını (GET, POST, PUT, DELETE) kabul et.
-              .AllowAnyMethod()
-              /// Tüm header'ları kabul et (Authorization, Content-Type vb).
-              .AllowAnyHeader();
-    });
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
 });
 
-// ===== 4. UYGULAMAYI OLUŞTUR =====
+// ===== 4. VERİTABANI =====
+
+/// appsettings.json'daki bağlantı adresiyle EF Core'u SQL Server'a bağla.
+/// EnableRetryOnFailure: anlık bağlantı kopmalarında sorguyu 5 kez tekrar dener.
+builder.Services.AddDbContext<PromptForgeDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"), sql =>
+        sql.EnableRetryOnFailure(maxRetryCount: 5)));
+
+/// Data Protection: 2FA gizli anahtarlarını veritabanına şifreli yazmak için kullanılır.
+/// Şifreleme anahtarları proje klasörü dışında, Windows kullanıcı profilinde saklanır.
+builder.Services.AddDataProtection();
+
+// ===== 5. SERVİS KATMANI =====
+
+/// AddScoped: Her HTTP isteği için servisin yeni bir kopyası oluşur (DbContext ile aynı ömür).
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<AccountService>();
+builder.Services.AddScoped<PromptLibraryService>();
+builder.Services.AddScoped<UsageService>();
+builder.Services.AddScoped<OneTimeCodeService>();
+builder.Services.AddSingleton<TwoFactorService>();
+
+/// E-posta: SMTP ayarı varsa gerçek e-posta, yoksa geliştirme modu (içerik konsola yazılır).
+if (!string.IsNullOrWhiteSpace(builder.Configuration["Email:Smtp:Host"]))
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender, ConsoleEmailSender>();
+
+// ===== 6. AI SAĞLAYICILARI =====
+
+/// Tüm sağlayıcılar aynı arayüzle (IAiProvider) kaydedilir; PromptOptimizerService hepsini liste olarak alır
+/// ve anahtarı tanımlı olanı seçer. Anahtarlar kodda değil user secrets'ta durur (bkz. README).
+builder.Services.AddHttpClient("ai", client => client.Timeout = TimeSpan.FromSeconds(90));
+builder.Services.AddSingleton<IAiProvider, AnthropicProvider>();
+builder.Services.AddSingleton<IAiProvider, OpenAiProvider>();
+builder.Services.AddSingleton<IAiProvider, GeminiProvider>();
+builder.Services.AddSingleton<IAiProvider, DeepSeekProvider>();
+builder.Services.AddSingleton<PromptOptimizerService>();
+
+// ===== 7. UYGULAMAYI OLUŞTUR =====
 
 var app = builder.Build();
 
-// ===== 5. MIDDLEWARE PIPELINE (İstek Sırası) =====
+// ===== 8. MIDDLEWARE SIRASI =====
 
-/// AÇIKLAMA: Gelen HTTP istekleri bu sırayla işlenir:
-/// 1. Swagger → 2. HTTPS → 3. CORS → 4. Auth → 5. Controller
-///
-/// Her middleware bir işlev yapar, sonrakine geçer.
+/// Gelen her istek yukarıdan aşağıya bu adımlardan geçer.
 
-/// Development ortamında Swagger UI'ı etkinleştir.
-/// http://localhost:5000/swagger
-/// API'nin tüm endpoint'lerini gösterir.
 if (app.Environment.IsDevelopment())
 {
+    // http://localhost:5299/swagger → API test sayfası (sadece geliştirmede).
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    // Canlıda beklenmeyen hatalarda kullanıcıya iç detay (stack trace) gösterme.
+    app.UseExceptionHandler(errorApp => errorApp.Run(context =>
+        Results.Problem("Beklenmeyen bir hata oluştu.").ExecuteAsync(context)));
+    app.UseHsts();
+}
 
-/// HTTP isteklerini HTTPS'ye yönlendir (SSL/TLS şifreleme).
-/// Production'da önemlidir.
 app.UseHttpsRedirection();
 
-/// wwwroot klasöründeki arayüz dosyalarını (HTML, CSS, JS) sun.
-/// UseDefaultFiles: http://localhost:5299/ adresine gelince index.html'i açar.
-/// UseStaticFiles: /app.html, /auth/sign-in.html gibi dosyaları olduğu gibi gönderir.
-/// Böylece site ve API aynı adreste çalışır.
+/// wwwroot klasöründeki arayüzü (HTML, CSS, JS) sun. Site ve API aynı adreste çalıştığı için CORS gerekmez.
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-/// Önceki CORS politikasını uygula.
-/// Frontend'in API'ye erişebilmesini sağla.
-app.UseCors("AllowAll");
+app.UseRateLimiter();
 
 /// Önce "sen kimsin?" (Authentication: token'ı oku ve doğrula),
 /// sonra "buna yetkin var mı?" (Authorization: [Authorize] kuralını uygula).
-/// Sıra önemli: kim olduğunu bilmeden yetkiyi kontrol edemeyiz.
 app.UseAuthentication();
 app.UseAuthorization();
 
-/// Controller'ları route'la.
-/// Örn: GET /api/users → UsersController.GetUsers()
 app.MapControllers();
 
-// ===== 6. API'YI BAŞLAT =====
-
-/// Uygulama çalışmaya başlar ve HTTP istekleri bekler.
-/// Durdur: Ctrl+C
 app.Run();

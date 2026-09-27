@@ -365,23 +365,49 @@
     if (forgeButtonLabel) forgeButtonLabel.textContent = isLoading ? "İşleniyor" : "Optimize Et";
   }
 
-  function forge() {
+  // AKIŞ: yerel analiz → sunucuda optimize (AI veya yerel yedek) → sonucu analiz et → geçmişe kaydet → göster.
+  let forging = false;
+  async function forge() {
     const text = promptInput.value.trim();
     if (!text) { PF.toast("Prompt boş", "Optimize etmek için önce bir prompt yaz."); promptInput.focus(); return; }
+    if (forging) return;
+    forging = true;
     setForgeLoading(true);
     beginProcess();
     result.classList.add("kursat-hidden");
     result.classList.remove("is-revealed");
-    const before = analyzePrompt(text);
     hideForgeError();
-    setTimeout(() => {
-      try {
-      const optimized = buildOptimizedPrompt(text, PF.state.model, PF.state.goal, before);
+
+    try {
+      const before = analyzePrompt(text);
+      const profile = {
+        useCase: PF.state.useCase,
+        responseFormat: PF.state.responseFormat,
+        responseLanguage: PF.state.responseLanguage,
+        askClarifying: PF.state.askClarifying,
+        exposeAssumptions: PF.state.exposeAssumptions
+      };
+      // Yerel kural motorunun sürümü de gönderilir: AI anahtarı yoksa veya AI hata verirse sunucu bunu kullanır.
+      const localOptimized = buildOptimizedPrompt(text, PF.state.model, PF.state.goal, before);
+
+      const optimize = await PF.api.post("/api/prompts/optimize", {
+        original: text,
+        model: PF.state.model,
+        goal: PF.state.goal,
+        profile,
+        localOptimized,
+        requirements: before.requirements,
+        variables: before.variables
+      });
+      if (!optimize.ok) {
+        const quota = optimize.status === 429;
+        showForgeError(quota ? "Aylık kota doldu" : "Optimizasyon tamamlanamadı", optimize.data?.message || "Bağlantını kontrol edip tekrar deneyebilirsin.");
+        return;
+      }
+
+      const optimized = optimize.data.optimized;
       const after = analyzePrompt(optimized);
-      const requirements = before.requirements;
-      const record = {
-        id: PF.uid("forge"),
-        createdAt: new Date().toISOString(),
+      const draft = {
         model: PF.state.model,
         goal: PF.state.goal,
         original: text,
@@ -390,32 +416,41 @@
         afterTokens: estimateTokens(optimized),
         beforeHealth: before.score,
         afterHealth: Math.max(after.score, Math.min(98, before.score + 14)),
-        requirements,
+        requirements: before.requirements,
         issues: before.issues,
         variables: before.variables,
         checks: before.checks,
-        profile: {
-          useCase: PF.state.useCase,
-          responseFormat: PF.state.responseFormat,
-          responseLanguage: PF.state.responseLanguage,
-          askClarifying: PF.state.askClarifying,
-          exposeAssumptions: PF.state.exposeAssumptions
-        }
+        profile,
+        engine: optimize.data.engine
       };
+
+      // Geçmişe kaydet. Kayıt başarısız olsa bile kullanıcı sonucu görür; sadece geçmişte yer almaz.
+      const saved = await PF.api.post("/api/prompts", draft);
+      const record = saved.ok ? saved.data : { ...draft, id: PF.uid("unsaved"), createdAt: new Date().toISOString() };
+      if (saved.ok) PF.state.history.unshift(record);
+
       PF.state.currentResult = record;
-      PF.state.history.unshift(record);
-      PF.state.history = PF.state.history.slice(0, 80);
-      PF.save();
       finishProcess();
       renderResult(record);
       document.dispatchEvent(new CustomEvent("kursat:data-changed"));
+      document.dispatchEvent(new CustomEvent("kursat:usage-changed", { detail: optimize.data.usage }));
+
+      if (!saved.ok) PF.toast("Sonuç geçmişe kaydedilemedi", saved.data?.message || "Kopyalayarak saklayabilirsin.");
+      else if (optimize.data.notice) PF.toast("Prompt hazır", optimize.data.notice);
+      else PF.toast("Prompt hazır", `${engineLabel(record.engine)} ile optimize edildi.`);
+    } catch (error) {
+      console.error(error);
+      showForgeError("Optimizasyon sırasında hata oluştu", "Promptu kontrol edip tekrar deneyebilirsin.");
+    } finally {
+      forging = false;
       setForgeLoading(false);
-      PF.toast("Prompt hazır", "Optimize edilmiş sürüm oluşturuldu.");
-      } catch (error) {
-        console.error(error);
-        showForgeError("Optimizasyon sırasında hata oluştu", "Promptu kontrol edip tekrar deneyebilirsin.");
-      }
-    }, 650);
+    }
+  }
+
+  // "claude-opus-5" gibi teknik adı kullanıcıya okunur hale getir.
+  function engineLabel(engine) {
+    if (!engine || engine === "local") return "Yerel kural motoru";
+    return `AI · ${engine}`;
   }
 
   function updateFavoriteButton(record) {
@@ -424,6 +459,7 @@
     const exists = PF.state.favorites.some(item => item.id === record.id);
     button.textContent = exists ? "Favorilerde ✓" : "Favoriye ekle";
     button.classList.toggle("is-saved", exists);
+    button.disabled = String(record.id || "").startsWith("unsaved");
   }
 
   function renderResult(record) {
@@ -460,7 +496,7 @@
       ["Model uyumu", modelProfiles[record.model]?.label || "Evrensel", modelProfiles[record.model]?.hint || modelProfiles.universal.hint]
     ];
     if (diagnostics) diagnostics.innerHTML = diagnosticItems.map(([label, value, copy]) => `<article class="kursat-diagnostic-card"><span>${PF.escape(label)}</span><strong>${PF.escape(value)}</strong><p>${PF.escape(copy)}</p></article>`).join("");
-    document.querySelector("#kursat-result-badge").textContent = "Gereksinimler korundu";
+    document.querySelector("#kursat-result-badge").textContent = engineLabel(record.engine);
     updateFavoriteButton(record);
     setTimeout(() => result.scrollIntoView({ behavior: PF.state.motion === "off" ? "auto" : "smooth", block:"start" }), 60);
   }
@@ -633,13 +669,24 @@
     PF.toast("Dosya hazır", "Optimize edilmiş prompt indirildi.");
   });
 
-  document.querySelector("#kursat-save-favorite").addEventListener("click", () => {
+  // Favori butonu açma/kapama gibi çalışır: favorideyse çıkarır, değilse ekler.
+  document.querySelector("#kursat-save-favorite").addEventListener("click", async event => {
     const record = PF.state.currentResult; if (!record) return;
-    if (!PF.state.favorites.some(item => item.id === record.id)) PF.state.favorites.unshift(record);
-    PF.save();
+    const button = event.currentTarget;
+    const exists = PF.state.favorites.some(item => item.id === record.id);
+    button.disabled = true;
+    const response = exists
+      ? await PF.api.del(`/api/favorites/${record.id}`)
+      : await PF.api.post(`/api/favorites/${record.id}`);
+    button.disabled = false;
+    if (!response.ok) { PF.toast("İşlem tamamlanamadı", response.data?.message || "Tekrar dene."); return; }
+
+    PF.state.favorites = exists
+      ? PF.state.favorites.filter(item => item.id !== record.id)
+      : [{ ...record, savedAt: new Date().toISOString() }, ...PF.state.favorites];
     updateFavoriteButton(record);
     document.dispatchEvent(new CustomEvent("kursat:data-changed"));
-    PF.toast("Favorilere eklendi");
+    PF.toast(exists ? "Favoriden kaldırıldı" : "Favorilere eklendi");
   });
 
   document.querySelector("#kursat-health-analyze")?.addEventListener("click", () => {
@@ -693,5 +740,5 @@
   resetSnapshots(promptInput.value);
   syncControls();
   updatePromptMeta({ silent:true });
-  window.PFForge = { analyzePrompt, estimateTokens, modelProfiles, loadRecord, showError: showForgeError, hideError: hideForgeError };
+  window.PFForge = { analyzePrompt, estimateTokens, modelProfiles, loadRecord, engineLabel, showError: showForgeError, hideError: hideForgeError };
 })();

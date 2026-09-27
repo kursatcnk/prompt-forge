@@ -2,7 +2,6 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using PromptForge.Api.Data;
 using PromptForge.Api.Dtos;
@@ -11,249 +10,196 @@ using PromptForge.Api.Models;
 namespace PromptForge.Api.Services
 {
     /// <summary>
-    /// IUserService'i implement eder. Gerçek iş mantığını burada yazarız.
-    ///
-    /// SORUMLULUKLAR:
-    /// - Kullanıcı kaydı ve girişi
-    /// - Şifre güvenliği (hashing)
-    /// - JWT token oluşturma ve doğrulama
+    /// IUserService'i implement eder: kayıt, giriş, 2 adımlı giriş, şifre sıfırlama, e-posta doğrulama ve JWT üretimi.
     /// </summary>
     public class UserService : IUserService
     {
+        public const int MinPasswordLength = 8;
+
         private readonly PromptForgeDbContext _context;
         private readonly IConfiguration _configuration;
+        private readonly OneTimeCodeService _codes;
+        private readonly TwoFactorService _twoFactor;
+        private readonly IEmailSender _email;
 
-        public UserService(PromptForgeDbContext context, IConfiguration configuration)
+        public UserService(PromptForgeDbContext context, IConfiguration configuration, OneTimeCodeService codes,
+            TwoFactorService twoFactor, IEmailSender email)
         {
             _context = context;
             _configuration = configuration;
+            _codes = codes;
+            _twoFactor = twoFactor;
+            _email = email;
         }
 
-        /// <summary>
-        /// Yeni kullanıcıyı kaydeder.
-        /// </summary>
-        public async Task<(bool success, string? token, string? error, User? user)> RegisterAsync(
-            string email,
-            string password,
-            string displayName)
+        /// <summary>Şifre kuralı tek yerde: başka yerler de (şifre değiştirme, sıfırlama) bunu kullanır.</summary>
+        public static string? ValidatePassword(string? password) =>
+            string.IsNullOrWhiteSpace(password) || password.Length < MinPasswordLength
+                ? $"Şifre en az {MinPasswordLength} karakter olmalıdır."
+                : null;
+
+        public async Task<AuthResult> RegisterAsync(string email, string password, string displayName)
         {
-            // Validation: Email boş mı?
-            if (string.IsNullOrWhiteSpace(email))
-                return (false, null, "Email boş olamaz.", null);
+            if (string.IsNullOrWhiteSpace(email) || !email.Contains('@'))
+                return AuthResult.Fail("Geçerli bir e-posta adresi gir.");
+            if (ValidatePassword(password) is { } passwordError)
+                return AuthResult.Fail(passwordError);
 
-            // Validation: Şifre boş mı?
-            if (string.IsNullOrWhiteSpace(password) || password.Length < 6)
-                return (false, null, "Şifre en az 6 karakter olmalıdır.", null);
-
-            // Email'i standart hale getir: boşlukları sil, küçük harfe çevir.
-            // Böylece "Ahmet@X.com" ile "ahmet@x.com" aynı hesap sayılır.
+            // Email'i standart hale getir: "Ahmet@X.com" ile "ahmet@x.com" aynı hesap sayılır.
             email = NormalizeEmail(email);
+            if (await _context.Users.AnyAsync(u => u.Email == email))
+                return AuthResult.Fail("Bu email zaten kayıtlı.");
 
-            // Kontrol: Email zaten kayıtlı mı?
-            var emailTaken = await _context.Users.AnyAsync(u => u.Email == email);
-            if (emailTaken)
-                return (false, null, "Bu email zaten kayıtlı.", null);
-
-            // Şifreyi BCrypt ile hash'le. Veritabanına asla düz şifre yazılmaz.
-            var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
-
-            // Yeni kullanıcı oluştur.
             var user = new User
             {
                 Id = Guid.NewGuid(),
                 Email = email,
-                PasswordHash = passwordHash,
+                // BCrypt: şifre geri döndürülemez şekilde saklanır.
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
                 // Görünen ad girilmediyse email'in @ öncesini kullan (ahmet@x.com → ahmet).
                 DisplayName = string.IsNullOrWhiteSpace(displayName) ? email.Split('@')[0] : displayName.Trim(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsActive = true,
-                // Varsayılan ayarları kullanıcıyla birlikte oluştur; tek SaveChanges ile ikisi birden kaydolur.
+                // Varsayılan ayarlar kullanıcıyla birlikte tek SaveChanges ile kaydolur.
                 Settings = new UserSettings { Id = Guid.NewGuid() }
             };
 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
+            await SendEmailVerificationAsync(user);
 
-            // Kayıt sonrası otomatik giriş: token üret ve dön.
-            var token = GenerateJwtToken(user.Id.ToString(), user.Email);
-            return (true, token, null, user);
+            return new AuthResult(true, GenerateJwtToken(user), null, user);
         }
 
-        /// <summary>
-        /// Kullanıcı girişi (login).
-        /// </summary>
-        public async Task<(bool success, string? token, string? error, User? user)> LoginAsync(
-            string email,
-            string password)
+        public async Task<AuthResult> LoginAsync(string email, string password)
         {
-            // Validation
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-                return (false, null, "Email ve şifre gerekli.", null);
+                return AuthResult.Fail("Email ve şifre gerekli.");
 
             email = NormalizeEmail(email);
-
-            // Email ile kullanıcıyı bul.
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
 
-            // Kullanıcı yoksa da, şifre yanlışsa da aynı mesajı veriyoruz.
-            // Böylece kötü niyetli biri "bu email kayıtlı mı?" bilgisini öğrenemez.
-            if (user == null)
-                return (false, null, "Email veya şifre yanlış.", null);
-
-            // Hesap aktif mi?
+            // Kullanıcı yoksa da şifre yanlışsa da aynı mesaj: dışarıdan "bu email kayıtlı mı?" öğrenilemez.
+            if (user == null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                return AuthResult.Fail("Email veya şifre yanlış.");
             if (!user.IsActive)
-                return (false, null, "Hesap deaktive edilmiş.", null);
+                return AuthResult.Fail("Hesap deaktive edilmiş.");
 
-            // Girilen şifreyi, kayıtlı hash ile karşılaştır.
-            var isPasswordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
-            if (!isPasswordValid)
-                return (false, null, "Email veya şifre yanlış.", null);
-
-            // Şifre doğruysa token oluştur.
-            var token = GenerateJwtToken(user.Id.ToString(), user.Email);
-            return (true, token, null, user);
-        }
-
-        /// <summary>
-        /// JWT token'ı doğrulama ve içeriğini çıkarma.
-        /// Controller'lar her istek'te bunu çağırır.
-        /// </summary>
-        public async Task<(bool valid, string? userId, string? error)> ValidateTokenAsync(string token)
-        {
-            try
+            if (user.TwoFactorEnabled)
             {
-                // JWT konfigürasyonunu oluştur.
-                var key = new SymmetricSecurityKey(
-                    Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"] ?? ""));
-
-                var tokenHandler = new JwtSecurityTokenHandler();
-
-                // Token'ı parse et ve doğrula.
-                var principal = tokenHandler.ValidateToken(token,
-                    new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = key,
-                        ValidateIssuer = true,
-                        ValidIssuer = _configuration["Jwt:Issuer"],
-                        ValidateAudience = true,
-                        ValidAudience = _configuration["Jwt:Audience"],
-                        ValidateLifetime = true,
-                        ClockSkew = TimeSpan.Zero
-                    }, out SecurityToken validatedToken);
-
-                // Token geçerli. User ID'yi çıkar.
-                var userId = principal?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-                if (string.IsNullOrEmpty(userId))
-                    return (false, null, "Token içerisinde user ID bulunamadı.");
-
-                // User ID'nin veritabanında olup olmadığını kontrol et.
-                var userExists = await _context.Users.AnyAsync(u => u.Id == Guid.Parse(userId));
-                if (!userExists)
-                    return (false, null, "Kullanıcı bulunamadı.");
-
-                return (true, userId, null);
+                // Şifre doğru ama iş bitmedi: 5 dakika geçerli bir bilet ver, kod ekranında bununla devam edilir.
+                var secret = await _codes.CreateSecretTokenAsync(user.Id, OneTimeCodeService.TwoFactor, TimeSpan.FromMinutes(5));
+                return new AuthResult(true, null, null, user, RequiresTwoFactor: true, TwoFactorTicket: $"{user.Id:N}.{secret}");
             }
-            catch (Exception ex)
-            {
-                return (false, null, $"Token doğrulama başarısız: {ex.Message}");
-            }
+
+            return new AuthResult(true, GenerateJwtToken(user), null, user);
         }
 
-        /// <summary>
-        /// Kullanıcıyı ID'sine göre getir.
-        /// </summary>
-        public async Task<dynamic?> GetUserByIdAsync(string userId)
+        public async Task<AuthResult> CompleteTwoFactorLoginAsync(string ticket, string code)
         {
-            if (!Guid.TryParse(userId, out var guidId))
-                return null;
+            // Bilet formatı: "{kullanıcıId}.{gizli anahtar}"
+            var parts = (ticket ?? string.Empty).Split('.', 2);
+            if (parts.Length != 2 || !Guid.TryParseExact(parts[0], "N", out var userId))
+                return AuthResult.Fail("Oturum süresi doldu. Lütfen tekrar giriş yap.");
 
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == guidId);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null || !user.TwoFactorEnabled || string.IsNullOrEmpty(user.TwoFactorSecret))
+                return AuthResult.Fail("Oturum süresi doldu. Lütfen tekrar giriş yap.");
 
-            // Şifre hash'i döndürme (güvenlik).
-            if (user != null)
-                return new
-                {
-                    user.Id,
-                    user.Email,
-                    user.DisplayName,
-                    user.Avatar,
-                    user.CreatedAt
-                };
+            // Önce kodu kontrol et, bileti sadece kod doğruysa harca: yanlış kodda kullanıcı tekrar deneyebilsin.
+            if (!_twoFactor.VerifyCode(_twoFactor.Unprotect(user.TwoFactorSecret), code))
+                return AuthResult.Fail("Doğrulama kodu hatalı.");
+            if (!await _codes.ConsumeAsync(user.Id, OneTimeCodeService.TwoFactor, parts[1]))
+                return AuthResult.Fail("Oturum süresi doldu. Lütfen tekrar giriş yap.");
 
-            return null;
+            return new AuthResult(true, GenerateJwtToken(user), null, user);
         }
 
-        /// <summary>
-        /// Tüm kullanıcıları listeler.
-        /// </summary>
+        public async Task RequestPasswordResetAsync(string email, string appBaseUrl)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return;
+            email = NormalizeEmail(email);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email && u.IsActive);
+            if (user == null) return; // Bilerek sessiz: kayıtlı olmayan email'ler de "gönderildi" cevabı alır.
+
+            var token = await _codes.CreateSecretTokenAsync(user.Id, OneTimeCodeService.PasswordReset, TimeSpan.FromMinutes(30));
+            var link = $"{appBaseUrl}/auth/recover-password.html?email={Uri.EscapeDataString(email)}&token={token}";
+            await _email.SendAsync(email, "PromptForge şifre sıfırlama",
+                $"Merhaba {user.DisplayName},\n\nŞifreni sıfırlamak için bu bağlantıyı aç (30 dakika geçerli):\n{link}\n\nBu isteği sen yapmadıysan bu e-postayı yok sayabilirsin.");
+        }
+
+        public async Task<(bool success, string? error)> ResetPasswordAsync(string email, string token, string newPassword)
+        {
+            if (ValidatePassword(newPassword) is { } passwordError) return (false, passwordError);
+
+            email = NormalizeEmail(email ?? string.Empty);
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (user == null || !await _codes.ConsumeAsync(user.Id, OneTimeCodeService.PasswordReset, token))
+                return (false, "Sıfırlama bağlantısı geçersiz veya süresi dolmuş. Yeni bir bağlantı iste.");
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            // Bağlantı e-postaya geldiğine göre e-posta adresi de doğrulanmış sayılır.
+            user.EmailConfirmed = true;
+            await _context.SaveChangesAsync();
+            return (true, null);
+        }
+
+        public async Task SendEmailVerificationAsync(User user)
+        {
+            var code = await _codes.CreateNumericCodeAsync(user.Id, OneTimeCodeService.EmailVerify, TimeSpan.FromMinutes(30));
+            await _email.SendAsync(user.Email, "PromptForge e-posta doğrulama kodu",
+                $"Merhaba {user.DisplayName},\n\nE-posta doğrulama kodun: {code}\n\nKod 30 dakika geçerlidir.");
+        }
+
         public async Task<List<UserInfo>> GetAllUsersAsync()
         {
-            return await _context.Users
+            var users = await _context.Users
                 // Sadece okuyacağız, değiştirmeyeceğiz: EF'in değişiklik takibini kapatmak daha hızlıdır.
                 .AsNoTracking()
                 .OrderByDescending(u => u.CreatedAt)
-                // Select ile sadece gereken sütunları çekiyoruz; PasswordHash veritabanından hiç okunmaz.
-                .Select(u => new UserInfo
-                {
-                    Id = u.Id,
-                    Email = u.Email,
-                    DisplayName = u.DisplayName,
-                    Avatar = u.Avatar
-                })
                 .ToListAsync();
+            return users.Select(ToUserInfo).ToList();
         }
+
+        /// <summary>Veritabanı modelini dışarıya güvenli DTO'ya çevirir; şifre hash'i ve 2FA anahtarı asla dışarı çıkmaz.</summary>
+        public static UserInfo ToUserInfo(User user) => new()
+        {
+            Id = user.Id,
+            Email = user.Email,
+            DisplayName = user.DisplayName,
+            Avatar = user.Avatar,
+            EmailConfirmed = user.EmailConfirmed,
+            TwoFactorEnabled = user.TwoFactorEnabled,
+            Plan = user.Plan,
+            CreatedAt = DateTime.SpecifyKind(user.CreatedAt, DateTimeKind.Utc)
+        };
 
         // Email karşılaştırmaları büyük/küçük harfe takılmasın diye tek formata çeviririz.
         private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
         /// <summary>
         /// JWT token'ı oluşturur.
-        ///
-        /// YAPISI:
-        /// {
-        ///   header: { alg: "HS256", typ: "JWT" },
-        ///   payload: { sub: userId, email, iat, exp },
-        ///   signature: HMAC-SHA256(header.payload, secret)
-        /// }
-        ///
-        /// Token'ın geçerlilik süresi: 60 dakika (appsettings.json'dan oku)
+        /// İçerik: kullanıcı id'si ve email; imza: appsettings'teki gizli anahtar; süre: Jwt:ExpiryMinutes.
         /// </summary>
-        private string GenerateJwtToken(string userId, string email)
+        private string GenerateJwtToken(User user)
         {
-            // Gizli anahtarı oku.
-            var secret = _configuration["Jwt:Secret"] ?? "";
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
-
-            // İmzalama kimliğini oluştur.
-            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-            // Token içeriğini oluştur (claims = veriler).
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Secret"] ?? ""));
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, userId),
-                new Claim(ClaimTypes.Email, email),
-                new Claim("userId", userId) // Extra field
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Email, user.Email)
             };
 
-            // Geçerlilik süresini oku.
-            var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "60");
-
-            // Token'ı oluştur.
             var token = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
-                signingCredentials: creds
-            );
+                expires: DateTime.UtcNow.AddMinutes(int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "60")),
+                signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256));
 
-            // Token'ı string'e çevir.
-            var tokenHandler = new JwtSecurityTokenHandler();
-            return tokenHandler.WriteToken(token);
+            return new JwtSecurityTokenHandler().WriteToken(token);
         }
     }
 }

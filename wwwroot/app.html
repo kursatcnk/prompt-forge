@@ -6,13 +6,13 @@
   <meta name="description" content="PromptForge; GPT, Claude, Gemini ve DeepSeek için promptları daha net, daha verimli ve daha kontrollü hale getirir.">
   <title>PromptForge</title>
   <link rel="icon" href="assets/img/kursat-promptforge-mark.svg" type="image/svg+xml">
-  <script>
-    // Frontend-only önizleme: ilk boyamada yalnızca sistem temasını uygula, veri kalıcılığı kullanma.
-    (()=>{const koyu=matchMedia?.("(prefers-color-scheme: dark)")?.matches;document.documentElement.dataset.kursatTheme="light";document.documentElement.dataset.kursatThemePref="light";document.documentElement.dataset.kursatDensity="comfortable";document.documentElement.dataset.kursatMotion="on";})();
-  </script>
   <!-- Giriş kontrolü: token yoksa sayfa çizilmeden giriş ekranına yönlendir. -->
   <script src="assets/js/kursat-session.js"></script>
-  <script>PromptForgeSession.requireAuth("auth/sign-in.html");</script>
+  <script>
+    PromptForgeSession.requireAuth("auth/sign-in.html");
+    // İlk boyamada son kayıtlı görünümü uygula; hesaptaki ayarlar yüklenince kursat-core.js günceller.
+    (()=>{const a=PromptForgeSession.readAppearance()||{};const pref=a.theme||"light";const dark=pref==="dark"||(pref==="system"&&matchMedia?.("(prefers-color-scheme: dark)")?.matches);const d=document.documentElement.dataset;d.kursatTheme=dark?"dark":"light";d.kursatThemePref=pref;d.kursatDensity=a.density||"comfortable";d.kursatMotion=a.motion||"on";})();
+  </script>
   <link rel="stylesheet" href="assets/css/kursat-promptforge.css">
 </head>
 <body>
@@ -61,7 +61,7 @@
       </div>
     </nav>
 
-    <div class="kursat-sidebar-footer"><strong>PromptForge Pro</strong><p>Daha net promptlar oluştur, sürümlerini koru ve iş akışını hızlandır.</p><button class="kursat-sidebar-cta" type="button">Planları Gör</button></div>
+    <div class="kursat-sidebar-footer"><strong id="kursat-sidebar-plan-title">PromptForge Pro</strong><p id="kursat-sidebar-plan-copy">Daha net promptlar oluştur, sürümlerini koru ve iş akışını hızlandır.</p><button class="kursat-sidebar-cta" id="kursat-open-plans" type="button">Planları Gör</button></div>
   </aside>
   <button class="kursat-sidebar-backdrop" id="kursat-sidebar-backdrop" type="button" aria-label="Menüyü kapat"></button>
 
@@ -72,7 +72,7 @@
         <div class="kursat-page-context"><small id="kursat-context-group">Çalışma alanı</small><strong id="kursat-context-title">Optimize Et</strong></div>
       </div>
       <div class="kursat-topbar-actions">
-        <span class="kursat-workspace-status"><i></i><span>Çalışma alanı</span></span>
+        <button class="kursat-workspace-status" id="kursat-engine-status" type="button" data-kursat-view="settings" title="AI motoru durumu"><i></i><span>Çalışma alanı</span></button>
         <button class="kursat-command-button" id="kursat-open-command" type="button"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></svg><span>Ara ve komut çalıştır</span><span class="kursat-key">⌘K</span></button>
         <button class="kursat-icon-button kursat-theme-quick" id="kursat-theme-quick" type="button" aria-label="Temayı değiştir"><svg class="kursat-theme-icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg><svg class="kursat-theme-icon-moon" viewBox="0 0 24 24"><path d="M20 15.2A8 8 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z"/></svg></button>
         <button class="kursat-user-button" type="button" data-kursat-view="settings"><span class="kursat-avatar">PF</span><span>Hesabım</span></button>
@@ -252,15 +252,17 @@
         <div class="kursat-page-head"><div class="kursat-page-head-copy"><span class="kursat-eyebrow">Ayarlar</span><h1>Çalışma alanını kişiselleştir.</h1><p>Çalışma alanının görünümünü, varsayılan model tercihini ve üretkenlik ayarlarını yönet.</p></div></div>
         <div class="kursat-settings-grid">
           <article class="kursat-card kursat-settings-card"><h3>Varsayılanlar</h3><p>Yeni bir çalışmada kullanılacak başlangıç tercihlerini belirle.</p><div class="kursat-field"><label for="kursat-setting-model">Varsayılan model</label><select class="kursat-select" id="kursat-setting-model"><option value="gpt">GPT</option><option value="claude">Claude</option><option value="gemini">Gemini</option><option value="deepseek">DeepSeek</option><option value="universal">Evrensel</option></select></div><div class="kursat-field kursat-field--spaced"><label for="kursat-setting-goal">Varsayılan hedef</label><select class="kursat-select" id="kursat-setting-goal"><option value="quality">En iyi sonuç</option><option value="balanced">Dengeli</option><option value="lean">En düşük kullanım</option></select></div></article>
-          <article class="kursat-card kursat-settings-card"><h3>Verimlilik</h3><p>Daha hızlı çalışmak ve tekrar eden işleri azaltmak için önerilen ayarlar.</p><div class="kursat-setting-row"><div><strong>Akıllı öneriler</strong><span>Eksik bağlam, ton ve çıktı yapısı için yardımcı öneriler sunar.</span></div><span class="kursat-badge">Etkin</span></div><div class="kursat-setting-row"><div><strong>Favori akışlar</strong><span>Sık kullandığın düzenleri tekrar kullanmak için erişilebilir tutar.</span></div><span class="kursat-badge">Hazır</span></div><div class="kursat-setting-row"><div><strong>Çalışma ritmi</strong><span>Daha az tıklama ile daha hızlı optimize etmek için arayüzü sade tutar.</span></div><span class="kursat-badge">Önerilen</span></div></article>
-          <article class="kursat-card kursat-settings-card"><h3>Çalışma deneyimi</h3><p>Ürünü ekiplerin günlük kullanımına daha uygun hale getiren temel yüzeyler.</p><div class="kursat-setting-row"><div><strong>Çoklu model desteği</strong><span>Model seçimi ve hedefe göre optimize etme akışı tek yüzeyde yönetilir.</span></div><span class="kursat-badge">Hazır</span></div><div class="kursat-setting-row"><div><strong>Önce / sonra karşılaştırma</strong><span>İyileştirilen promptu ve değişikliklerini yan yana inceleyebilirsin.</span></div><span class="kursat-badge">Hazır</span></div></article>
-          <article class="kursat-card kursat-settings-card kursat-appearance-card"><h3>Görünüm</h3><p>Tema, hareket ve arayüz yoğunluğunu bu oturum için anlık önizle.</p>
+          <!-- Hesap, güvenlik, plan ve tehlikeli bölge kartlarının içeriği kursat-account.js ile sunucudan doldurulur. -->
+          <article class="kursat-card kursat-settings-card" id="kursat-account-card"><h3>Hesap</h3><p>Profil bilgilerin ve giriş şifren.</p><div class="kursat-empty-mini">Yükleniyor…</div></article>
+          <article class="kursat-card kursat-settings-card" id="kursat-security-card"><h3>Güvenlik</h3><p>E-posta doğrulama ve iki adımlı doğrulama.</p><div class="kursat-empty-mini">Yükleniyor…</div></article>
+          <article class="kursat-card kursat-settings-card" id="kursat-plan-card"><h3>Plan ve kullanım</h3><p>Aylık optimizasyon kotan ve AI motoru durumu.</p><div class="kursat-empty-mini">Yükleniyor…</div></article>
+          <article class="kursat-card kursat-settings-card kursat-appearance-card"><h3>Görünüm</h3><p>Tema, hareket ve arayüz yoğunluğu hesabına kaydedilir; her cihazda aynı görünür.</p>
             <div class="kursat-setting-stack"><div><strong>Tema</strong><span>Varsayılan görünümü seç ve gerektiğinde hızlıca değiştir.</span></div><div class="kursat-segmented" id="kursat-theme-choice" role="group" aria-label="Tema"><button type="button" data-kursat-theme-choice="light">Açık</button><button type="button" data-kursat-theme-choice="dark">Koyu</button><button type="button" data-kursat-theme-choice="system">Sistem</button></div></div>
             <div class="kursat-setting-row"><div><strong>Hareket</strong><span>Geçiş ve mikro animasyonları kullan.</span></div><button class="kursat-toggle is-on" id="kursat-motion-toggle" type="button" aria-label="Hareketi aç veya kapat"><span></span></button></div>
             <div class="kursat-setting-stack"><div><strong>Yoğunluk</strong><span>Daha rahat veya daha sıkı bir çalışma alanı seç.</span></div><div class="kursat-segmented" id="kursat-density-choice" role="group" aria-label="Arayüz yoğunluğu"><button type="button" data-kursat-density-choice="comfortable">Rahat</button><button type="button" data-kursat-density-choice="compact">Sıkı</button></div></div>
           </article>
           <article class="kursat-card kursat-settings-card"><h3>Klavye kısayolları</h3><p>Sık kullanılan arayüz işlemlerini mouse kullanmadan çalıştır.</p><div class="kursat-shortcut-list"><div><span>Komut paleti</span><kbd>Ctrl/⌘ K</kbd></div><div><span>Promptu optimize et</span><kbd>Ctrl/⌘ Enter</kbd></div><div><span>Sonucu kopyala</span><kbd>Ctrl/⌘ Shift C</kbd></div><div><span>Odak modunu aç</span><kbd>Ctrl/⌘ Shift F</kbd></div><div><span>Odak / modal kapat</span><kbd>Esc</kbd></div></div></article>
-          <article class="kursat-card kursat-settings-card"><h3>Ekip alanı</h3><p>Ekiplerin birlikte çalışırken ihtiyaç duyacağı ana yüzeyler ve yönetim alanları.</p><div class="kursat-setting-row"><div><strong>Profil ve plan</strong><span>Kullanıcı profili, plan yönetimi ve erişim tercihleri.</span></div><span class="kursat-badge">Hazır</span></div><div class="kursat-setting-row"><div><strong>Kütüphane</strong><span>Geçmiş, favoriler, sürümler ve karşılaştırma alanları.</span></div><span class="kursat-badge">Hazır</span></div><div class="kursat-setting-row"><div><strong>Paylaşım</strong><span>Çalışmaları ekip içinde düzenlemek, paylaşmak ve sürümlemek için temel yüzeyler.</span></div><span class="kursat-badge">Hazır</span></div></article>
+          <article class="kursat-card kursat-settings-card kursat-danger-card" id="kursat-danger-card"><h3>Tehlikeli bölge</h3><p>Geri alınamayan işlemler. Devam etmeden önce şifren sorulur.</p><div class="kursat-setting-row"><div><strong>Hesabı sil</strong><span>Hesabın, geçmişin, favorilerin ve ayarların kalıcı olarak silinir.</span></div><a class="kursat-button kursat-button--danger" href="auth/approve-password.html?action=delete-account">Hesabı sil</a></div></article>
         </div>
       </section>
     </div>
@@ -280,11 +282,17 @@
   <section class="kursat-modal" role="dialog" aria-modal="true" aria-labelledby="kursat-confirm-title"><div class="kursat-modal-head"><h2 id="kursat-confirm-title">Emin misin?</h2><button class="kursat-icon-button" id="kursat-confirm-close" type="button" aria-label="Kapat"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="kursat-modal-body"><p class="kursat-confirm-copy" id="kursat-confirm-message"></p></div><div class="kursat-modal-foot"><button class="kursat-button" id="kursat-confirm-cancel" type="button">Vazgeç</button><button class="kursat-button kursat-button--danger" id="kursat-confirm-ok" type="button">Devam et</button></div></section>
 </div>
 
+<!-- Planlar ve 2 adımlı doğrulama kurulumu gibi pencerelerin ortak kabı; içeriği kursat-account.js doldurur. -->
+<div class="kursat-modal-backdrop" id="kursat-panel-backdrop" aria-hidden="true">
+  <section class="kursat-modal" role="dialog" aria-modal="true" aria-labelledby="kursat-panel-title"><div class="kursat-modal-head"><h2 id="kursat-panel-title"></h2><button class="kursat-icon-button" data-kursat-panel-close type="button" aria-label="Kapat"><svg viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></svg></button></div><div class="kursat-modal-body" id="kursat-panel-body"></div></section>
+</div>
+
 <div class="kursat-toast-stack" id="kursat-toast-stack" aria-live="polite"></div>
 <input class="kursat-hidden" id="kursat-file-input" type="file" accept=".txt,.md,.json,text/plain,text/markdown,application/json">
 <script src="assets/js/kursat-core.js"></script>
 <script src="assets/js/kursat-forge.js"></script>
 <script src="assets/js/kursat-builders.js"></script>
 <script src="assets/js/kursat-library.js"></script>
+<script src="assets/js/kursat-account.js"></script>
 </body>
 </html>

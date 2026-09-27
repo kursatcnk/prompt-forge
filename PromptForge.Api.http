@@ -1,6 +1,21 @@
 @PromptForge.Api_HostAddress = http://localhost:5299
 
-GET {{PromptForge.Api_HostAddress}}/weatherforecast/
-Accept: application/json
+### Giriş yap (cevaptaki token'ı aşağıdaki @token satırına yapıştır)
+POST {{PromptForge.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "123456"
+}
 
 ###
+@token = buraya-token-yapistir
+
+### Hesap bilgileri
+GET {{PromptForge.Api_HostAddress}}/api/account/me
+Authorization: Bearer {{token}}
+
+### Geçmiş
+GET {{PromptForge.Api_HostAddress}}/api/prompts
+Authorization: Bearer {{token}}

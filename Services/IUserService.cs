@@ -4,7 +4,7 @@ using PromptForge.Api.Models;
 namespace PromptForge.Api.Services
 {
     /// <summary>
-    /// Kullanıcı işlemleri için servis arayüzü (sözleşme).
+    /// Kimlik doğrulama işlemleri için servis arayüzü (sözleşme).
     ///
     /// NEDEN INTERFACE?
     /// - Controller'lar concrete class yerine interface'e bağımlı olur.
@@ -13,53 +13,31 @@ namespace PromptForge.Api.Services
     /// </summary>
     public interface IUserService
     {
-        /// <summary>
-        /// Yeni kullanıcıyı kaydeder.
-        ///
-        /// ADIMLAR:
-        /// 1. Email zaten var mı kontrol et
-        /// 2. Şifreyi hash'le (Bcrypt)
-        /// 3. Veritabanına kaydet
-        /// 4. Token dön (otomatik login)
-        ///
-        /// DÖNÜŞ:
-        /// - Success: (true, token, null, user)
-        /// - Hata: (false, null, error message, null)
-        /// </summary>
-        Task<(bool success, string? token, string? error, User? user)> RegisterAsync(
-            string email,
-            string password,
-            string displayName);
+        /// <summary>Yeni kullanıcı kaydı. Başarılıysa token döner ve e-postaya doğrulama kodu gönderilir.</summary>
+        Task<AuthResult> RegisterAsync(string email, string password, string displayName);
 
-        /// <summary>
-        /// Kullanıcı girişi.
-        ///
-        /// ADIMLAR:
-        /// 1. Email ile kullanıcı bul
-        /// 2. Şifre hash'ini kıyasla
-        /// 3. Eşleşirse token dön
-        /// 4. Değilse hata dön
-        /// </summary>
-        Task<(bool success, string? token, string? error, User? user)> LoginAsync(
-            string email,
-            string password);
+        /// <summary>Giriş. 2 adımlı doğrulama açıksa token yerine kısa ömürlü bir bilet döner.</summary>
+        Task<AuthResult> LoginAsync(string email, string password);
 
-        /// <summary>
-        /// JWT token'ı doğrula.
-        /// Middleware'in her istek'te bunu çağırması.
-        /// </summary>
-        Task<(bool valid, string? userId, string? error)> ValidateTokenAsync(string token);
+        /// <summary>2 adımlı girişin ikinci adımı: bilet + authenticator kodu → token.</summary>
+        Task<AuthResult> CompleteTwoFactorLoginAsync(string ticket, string code);
 
-        /// <summary>
-        /// User ID'den kullanıcıyı getir.
-        /// Controller'ların profil bilgisi lazım olduğunda kullanır.
-        /// </summary>
-        Task<dynamic?> GetUserByIdAsync(string userId);
+        /// <summary>Şifre sıfırlama bağlantısını e-postayla gönderir. Email kayıtlı olmasa da aynı şekilde davranır.</summary>
+        Task RequestPasswordResetAsync(string email, string appBaseUrl);
 
-        /// <summary>
-        /// Tüm kullanıcıları, en yeni kayıt en üstte olacak şekilde listeler.
-        /// Şifre hash'i gibi gizli alanlar dönmez; sadece UserInfo alanları döner.
-        /// </summary>
+        /// <summary>E-postadaki bağlantıdan gelen anahtarla yeni şifre belirler.</summary>
+        Task<(bool success, string? error)> ResetPasswordAsync(string email, string token, string newPassword);
+
+        /// <summary>6 haneli e-posta doğrulama kodunu üretip gönderir.</summary>
+        Task SendEmailVerificationAsync(User user);
+
+        /// <summary>Tüm kullanıcıları listeler (şifre hash'i dönmez).</summary>
         Task<List<UserInfo>> GetAllUsersAsync();
+    }
+
+    /// <summary>Giriş/kayıt işleminin sonucu.</summary>
+    public record AuthResult(bool Success, string? Token, string? Error, User? User, bool RequiresTwoFactor = false, string? TwoFactorTicket = null)
+    {
+        public static AuthResult Fail(string error) => new(false, null, error, null);
     }
 }

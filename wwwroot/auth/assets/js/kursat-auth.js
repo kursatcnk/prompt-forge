@@ -3,62 +3,191 @@
 
   const session = window.PromptForgeSession;
   const APP_URL = "../app.html#forge";
+  const TWO_FACTOR_KEY = "promptforge.twoFactor";
+  const MIN_PASSWORD = 8;
 
   function showMessage(text, type="success") { const box=document.querySelector("#kursat-auth-message"); if(!box)return; box.textContent=text; box.className=`kursat-auth-message is-visible ${type === "success" ? "is-success" : "is-error"}`; }
 
   // Butonu "yükleniyor" durumuna al; hata olursa eski yazısına geri döndürebilmek için orijinal metni saklıyoruz.
   function setLoading(form, text="Açılıyor...") { const button=form?.querySelector("button[type=submit]"); if(!button)return; button.dataset.kursatLabel ??= button.textContent; button.disabled=true; button.textContent=text; }
   function resetLoading(form) { const button=form?.querySelector("button[type=submit]"); if(!button)return; button.disabled=false; if(button.dataset.kursatLabel)button.textContent=button.dataset.kursatLabel; }
-  function navigate(form, href, message="Çalışma alanı açılıyor.") { showMessage(message,"success"); setLoading(form); setTimeout(()=>window.location.href=href,220); }
+  function navigate(form, href, message) { if(message)showMessage(message,"success"); setLoading(form); setTimeout(()=>window.location.href=href,420); }
   const valueOf = selector => document.querySelector(selector)?.value.trim() || "";
+  const params = new URLSearchParams(location.search);
+
+  // Başka bir sayfadan bırakılan tek seferlik mesajı göster (örn. "Şifren güncellendi").
+  const flash = session?.takeFlash();
+  if (flash?.message) showMessage(flash.message, flash.type);
 
   // Zaten giriş yapmış biri giriş/kayıt sayfasını açarsa doğrudan çalışma alanına gönder.
   if (session?.getToken() && document.querySelector("#kursat-login-form, #kursat-register-form")) window.location.replace(APP_URL);
 
-  document.querySelectorAll("[data-kursat-password-toggle]").forEach(button => button.addEventListener("click", () => { const input=document.querySelector(`#${button.dataset.kursatPasswordToggle}`); if(!input)return; input.type=input.type==="password"?"text":"password"; button.setAttribute("aria-label", input.type==="password"?"Şifreyi göster":"Şifreyi gizle"); }));
-
-  // Ortak akış: API'ye gönder → başarılıysa token'ı sakla ve çalışma alanına geç → değilse hatayı göster.
-  async function submitAuth(form, path, body, remember, successMessage) {
-    setLoading(form, "Kontrol ediliyor...");
-    const { ok, data } = await session.request(path, { method: "POST", body });
-    if (!ok || !data?.token) {
-      showMessage(data?.message || "İşlem tamamlanamadı. Lütfen tekrar dene.", "error");
-      resetLoading(form);
-      return;
-    }
-    session.saveSession(data.token, data.user, remember);
-    navigate(form, APP_URL, successMessage);
+  // Giriş gerektiren sayfalar (e-posta doğrulama, şifre onayı): token yoksa girişe gönder.
+  if (document.querySelector("#kursat-verify-form, #kursat-confirm-form") && !session?.getToken()) {
+    session?.setFlash("Devam etmek için giriş yap.", "error");
+    window.location.replace("sign-in.html");
   }
 
-  // GİRİŞ: POST /api/auth/login
-  document.querySelector("#kursat-login-form")?.addEventListener("submit", event => {
+  document.querySelectorAll("[data-kursat-password-toggle]").forEach(button => button.addEventListener("click", () => { const input=document.querySelector(`#${button.dataset.kursatPasswordToggle}`); if(!input)return; input.type=input.type==="password"?"text":"password"; button.setAttribute("aria-label", input.type==="password"?"Şifreyi göster":"Şifreyi gizle"); }));
+
+  // 6 haneli kod kutuları: rakam girilince sonrakine geç, silince öncekine dön, yapıştırınca hepsini doldur.
+  const otpInputs=[...document.querySelectorAll("[data-kursat-otp]")];
+  otpInputs.forEach((input,index)=>{
+    input.addEventListener("input",()=>{input.value=input.value.replace(/\D/g,"").slice(0,1);if(input.value&&otpInputs[index+1])otpInputs[index+1].focus();});
+    input.addEventListener("keydown",event=>{if(event.key==="Backspace"&&!input.value&&otpInputs[index-1])otpInputs[index-1].focus();});
+    input.addEventListener("paste",event=>{const digits=(event.clipboardData?.getData("text")||"").replace(/\D/g,"").slice(0,6);if(!digits)return;event.preventDefault();digits.split("").forEach((d,i)=>{if(otpInputs[i])otpInputs[i].value=d;});otpInputs[Math.min(digits.length,6)-1]?.focus();});
+  });
+  const otpCode = () => otpInputs.map(v=>v.value).join("");
+  otpInputs[0]?.focus();
+
+  // ===== GİRİŞ: POST /api/auth/login =====
+  document.querySelector("#kursat-login-form")?.addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
     const email = valueOf("#kursat-login-user");
     const password = document.querySelector("#kursat-login-password")?.value || "";
     if (!email || !password) { showMessage("E-posta ve şifre gerekli.", "error"); return; }
     const remember = document.querySelector("#kursat-login-remember")?.checked ?? true;
-    submitAuth(form, "/api/auth/login", { email, password }, remember, "Giriş başarılı. Çalışma alanına yönlendiriliyorsun.");
+
+    setLoading(form, "Kontrol ediliyor...");
+    const { ok, data } = await session.api.post("/api/auth/login", { email, password });
+    if (!ok) { showMessage(data?.message || "Giriş yapılamadı.", "error"); resetLoading(form); return; }
+
+    // 2 adımlı doğrulama açıksa token yerine bilet gelir: kod ekranına geç.
+    if (data.requiresTwoFactor) {
+      sessionStorage.setItem(TWO_FACTOR_KEY, JSON.stringify({ ticket: data.twoFactorTicket, remember }));
+      navigate(form, "two-step.html", "Şifre doğru. Doğrulama koduna geçiliyor.");
+      return;
+    }
+    session.saveSession(data.token, data.user, remember);
+    navigate(form, APP_URL, "Giriş başarılı. Çalışma alanına yönlendiriliyorsun.");
   });
 
-  // KAYIT: POST /api/auth/register (kayıt sonrası otomatik giriş yapılır)
-  document.querySelector("#kursat-register-form")?.addEventListener("submit", event => {
+  // ===== 2 ADIMLI GİRİŞ: POST /api/auth/login/two-factor =====
+  const twoFactorForm = document.querySelector("#kursat-otp-form");
+  if (twoFactorForm) {
+    const pending = JSON.parse(sessionStorage.getItem(TWO_FACTOR_KEY) || "null");
+    if (!pending?.ticket) {
+      session.setFlash("Önce e-posta ve şifrenle giriş yap.", "error");
+      window.location.replace("sign-in.html");
+    }
+    twoFactorForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      const code = otpCode();
+      if (code.length !== 6) { showMessage("Lütfen 6 haneli doğrulama kodunu gir.", "error"); return; }
+      setLoading(twoFactorForm, "Doğrulanıyor...");
+      const { ok, data } = await session.api.post("/api/auth/login/two-factor", { ticket: pending.ticket, code });
+      if (!ok) {
+        showMessage(data?.message || "Kod doğrulanamadı.", "error");
+        resetLoading(twoFactorForm);
+        otpInputs.forEach(input => { input.value = ""; });
+        otpInputs[0]?.focus();
+        return;
+      }
+      sessionStorage.removeItem(TWO_FACTOR_KEY);
+      session.saveSession(data.token, data.user, pending.remember);
+      navigate(twoFactorForm, APP_URL, "Doğrulama tamamlandı.");
+    });
+  }
+
+  // ===== KAYIT: POST /api/auth/register → e-posta doğrulama ekranı =====
+  document.querySelector("#kursat-register-form")?.addEventListener("submit", async event => {
     event.preventDefault();
     const form = event.currentTarget;
     const displayName = valueOf("#kursat-register-name");
     const email = valueOf("#kursat-register-email");
     const password = document.querySelector("#kursat-register-password")?.value || "";
     if (!email || !password) { showMessage("E-posta ve şifre gerekli.", "error"); return; }
-    if (password.length < 6) { showMessage("Şifre en az 6 karakter olmalı.", "error"); return; }
-    submitAuth(form, "/api/auth/register", { email, password, displayName }, true, "Hesabın oluşturuldu. Çalışma alanına yönlendiriliyorsun.");
+    if (password.length < MIN_PASSWORD) { showMessage(`Şifre en az ${MIN_PASSWORD} karakter olmalı.`, "error"); return; }
+
+    setLoading(form, "Hesap oluşturuluyor...");
+    const { ok, data } = await session.api.post("/api/auth/register", { email, password, displayName });
+    if (!ok) { showMessage(data?.message || "Hesap oluşturulamadı.", "error"); resetLoading(form); return; }
+    session.saveSession(data.token, data.user, true);
+    navigate(form, "email-verification.html", "Hesabın oluşturuldu. E-postana doğrulama kodu gönderdik.");
   });
 
-  // Aşağıdakiler henüz backend'e bağlı değil (şifre sıfırlama, e-posta doğrulama, 2FA); sadece ekran akışını gösterir.
-  document.querySelector("#kursat-forgot-form")?.addEventListener("submit", event => { event.preventDefault(); navigate(event.currentTarget,"recover-password.html","Şifre sıfırlama akışına yönlendiriliyorsun."); });
-  document.querySelector("#kursat-recover-form")?.addEventListener("submit", event => { event.preventDefault(); const p1=document.querySelector("#kursat-recover-password")?.value||""; const p2=document.querySelector("#kursat-recover-confirm")?.value||""; if(p1!==p2){showMessage("Şifre alanları eşleşmiyor.","error");return;} navigate(event.currentTarget,"sign-in.html","Şifren güncellendi. Giriş ekranına yönlendiriliyorsun."); });
-  document.querySelector("#kursat-confirm-form")?.addEventListener("submit", event => { event.preventDefault(); navigate(event.currentTarget,"../app.html#settings","Doğrulama tamamlandı."); });
+  // ===== E-POSTA DOĞRULAMA: POST /api/account/verify-email =====
+  const verifyForm = document.querySelector("#kursat-verify-form");
+  verifyForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const code = otpCode();
+    if (code.length !== 6) { showMessage("Lütfen 6 haneli kodu gir.", "error"); return; }
+    setLoading(verifyForm, "Doğrulanıyor...");
+    const { ok, data } = await session.api.post("/api/account/verify-email", { code });
+    if (!ok) { showMessage(data?.message || "Kod doğrulanamadı.", "error"); resetLoading(verifyForm); return; }
+    navigate(verifyForm, APP_URL, "E-posta adresin doğrulandı.");
+  });
+  document.querySelector("#kursat-verify-resend")?.addEventListener("click", async event => {
+    event.preventDefault();
+    const { ok, data } = await session.api.post("/api/account/resend-verification");
+    showMessage(ok ? "Yeni kod gönderildi. (Geliştirme modunda kod, API'nin konsol penceresine yazılır.)" : (data?.message || "Kod gönderilemedi."), ok ? "success" : "error");
+  });
 
-  const otpInputs=[...document.querySelectorAll("[data-kursat-otp]")];
-  otpInputs.forEach((input,index)=>{input.addEventListener("input",()=>{input.value=input.value.replace(/\D/g,"").slice(0,1);if(input.value&&otpInputs[index+1])otpInputs[index+1].focus();});input.addEventListener("keydown",event=>{if(event.key==="Backspace"&&!input.value&&otpInputs[index-1])otpInputs[index-1].focus();});});
-  document.querySelector("#kursat-otp-form")?.addEventListener("submit",event=>{event.preventDefault();const code=otpInputs.map(v=>v.value).join("");if(code.length!==6){showMessage("Lütfen 6 haneli doğrulama kodunu gir.","error");return;}navigate(event.currentTarget,"../app.html#forge","Doğrulama tamamlandı.");});
+  // ===== ŞİFREMİ UNUTTUM: POST /api/auth/forgot-password =====
+  document.querySelector("#kursat-forgot-form")?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const form = event.currentTarget;
+    const email = valueOf("#kursat-forgot-email");
+    if (!email) { showMessage("E-posta adresini gir.", "error"); return; }
+    setLoading(form, "Gönderiliyor...");
+    const { ok, data } = await session.api.post("/api/auth/forgot-password", { email });
+    resetLoading(form);
+    showMessage(ok ? `${data.message} Bağlantı 30 dakika geçerlidir. (Geliştirme modunda bağlantı, API'nin konsol penceresine yazılır.)` : (data?.message || "İstek gönderilemedi."), ok ? "success" : "error");
+  });
+
+  // ===== YENİ ŞİFRE: POST /api/auth/reset-password (e-postadaki bağlantıdan gelir) =====
+  const recoverForm = document.querySelector("#kursat-recover-form");
+  if (recoverForm && (!params.get("email") || !params.get("token"))) {
+    showMessage("Bu sayfa e-postadaki şifre sıfırlama bağlantısıyla açılmalı. Yeni bağlantı isteyebilirsin.", "error");
+    recoverForm.querySelector("button[type=submit]").disabled = true;
+  }
+  recoverForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const p1 = document.querySelector("#kursat-recover-password")?.value || "";
+    const p2 = document.querySelector("#kursat-recover-confirm")?.value || "";
+    if (p1.length < MIN_PASSWORD) { showMessage(`Şifre en az ${MIN_PASSWORD} karakter olmalı.`, "error"); return; }
+    if (p1 !== p2) { showMessage("Şifre alanları eşleşmiyor.", "error"); return; }
+    setLoading(recoverForm, "Güncelleniyor...");
+    const { ok, data } = await session.api.post("/api/auth/reset-password", { email: params.get("email"), token: params.get("token"), newPassword: p1 });
+    if (!ok) { showMessage(data?.message || "Şifre güncellenemedi.", "error"); resetLoading(recoverForm); return; }
+    session.clearSession();
+    session.setFlash(data.message);
+    navigate(recoverForm, "sign-in.html", data.message);
+  });
+
+  // ===== ŞİFRE ONAYI: hassas işlemler (2FA kapatma, hesap silme) =====
+  // Ayarlardan ?action=... ile gelinir; sayfa şifreyi alıp işlemi kendisi yapar.
+  const confirmForm = document.querySelector("#kursat-confirm-form");
+  const actions = {
+    "disable-2fa": { title: "İki adımlı doğrulamayı kapat", button: "Doğrula ve kapat", endpoint: "/api/account/two-factor/disable" },
+    "delete-account": { title: "Hesabını kalıcı olarak sil", button: "Doğrula ve hesabı sil", endpoint: "/api/account/delete" }
+  };
+  const action = actions[params.get("action")];
+  if (confirmForm) {
+    if (!action) {
+      showMessage("Onaylanacak bir işlem bulunamadı.", "error");
+      confirmForm.querySelector("button[type=submit]").disabled = true;
+    } else {
+      document.querySelector(".kursat-auth-title").textContent = action.title;
+      confirmForm.querySelector("button[type=submit]").textContent = action.button;
+      if (params.get("action") === "delete-account")
+        document.querySelector(".kursat-auth-subtitle").textContent = "Hesabın, geçmişin, favorilerin ve ayarların kalıcı olarak silinecek. Bu işlem geri alınamaz.";
+    }
+  }
+  confirmForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const password = document.querySelector("#kursat-confirm-password")?.value || "";
+    if (!password) { showMessage("Şifreni gir.", "error"); return; }
+    setLoading(confirmForm, "İşleniyor...");
+    const { ok, data } = await session.api.post(action.endpoint, { password });
+    if (!ok) { showMessage(data?.message || "İşlem tamamlanamadı.", "error"); resetLoading(confirmForm); return; }
+    if (params.get("action") === "delete-account") {
+      session.clearSession();
+      session.setFlash(data.message);
+      navigate(confirmForm, "sign-in.html", data.message);
+    } else {
+      navigate(confirmForm, "../app.html#settings", data.message);
+    }
+  });
 })();

@@ -1,33 +1,42 @@
 namespace PromptForge.Api.Dtos
 {
-    /// <summary>
-    /// Kayıt istemi.
-    /// Frontend şu JSON'u POST /api/auth/register gönderir:
-    /// { "email": "user@example.com", "password": "123456", "displayName": "Ahmet" }
-    /// </summary>
+    /// <summary>POST /api/auth/register → { "email", "password", "displayName" }</summary>
     public class RegisterRequest
     {
-        /// <summary>Kullanıcının e-postası.</summary>
         public string? Email { get; set; }
-
-        /// <summary>Şifre (en az 6 karakter).</summary>
         public string? Password { get; set; }
-
-        /// <summary>Görüntü adı (opsiyonel, email'den türetilebilir).</summary>
         public string? DisplayName { get; set; }
     }
 
-    /// <summary>
-    /// Giriş istemi.
-    /// Frontend şu JSON'u POST /api/auth/login gönderir:
-    /// { "email": "user@example.com", "password": "123456" }
-    /// </summary>
+    /// <summary>POST /api/auth/login → { "email", "password" }</summary>
     public class LoginRequest
     {
-        /// <summary>Kullanıcının e-postası.</summary>
         public string? Email { get; set; }
-
-        /// <summary>Şifre.</summary>
         public string? Password { get; set; }
+    }
+
+    /// <summary>
+    /// POST /api/auth/login/two-factor → { "ticket", "code" }
+    /// Ticket: şifre doğru girilince verilen kısa ömürlü bilet. Code: authenticator uygulamasındaki 6 haneli kod.
+    /// </summary>
+    public class TwoFactorLoginRequest
+    {
+        public string? Ticket { get; set; }
+        public string? Code { get; set; }
+        public bool Remember { get; set; } = true;
+    }
+
+    /// <summary>POST /api/auth/forgot-password → { "email" }</summary>
+    public class ForgotPasswordRequest
+    {
+        public string? Email { get; set; }
+    }
+
+    /// <summary>POST /api/auth/reset-password → { "email", "token", "newPassword" } (e-postadaki bağlantıdan gelir)</summary>
+    public class ResetPasswordRequest
+    {
+        public string? Email { get; set; }
+        public string? Token { get; set; }
+        public string? NewPassword { get; set; }
     }
 }

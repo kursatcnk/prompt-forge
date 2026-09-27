@@ -5,6 +5,8 @@ window.PromptForgeSession = (() => {
 
   const TOKEN_KEY = "promptforge.token";
   const USER_KEY = "promptforge.user";
+  const APPEARANCE_KEY = "promptforge.appearance";
+  const FLASH_KEY = "promptforge.flash";
 
   // "Beni hatırla" seçiliyse localStorage (tarayıcı kapansa da kalır),
   // değilse sessionStorage (sekme kapanınca silinir) kullanılır.
@@ -38,6 +40,13 @@ window.PromptForgeSession = (() => {
     } catch { /* depolama doluysa oturum sadece bu sayfada yaşar */ }
   }
 
+  // Giriş yapmış kullanıcının bilgisi değişince (ad değişikliği gibi) token'a dokunmadan günceller.
+  function updateUser(user) {
+    for (const store of stores()) {
+      try { if (store.getItem(TOKEN_KEY)) store.setItem(USER_KEY, JSON.stringify(user ?? {})); } catch { /* yok say */ }
+    }
+  }
+
   // JWT'nin ortadaki parçası (payload) base64 ile kodlanmış JSON'dur; içinden son kullanma zamanını (exp) okuruz.
   function isExpired(token) {
     try {
@@ -60,9 +69,36 @@ window.PromptForgeSession = (() => {
     try { return JSON.parse(read(USER_KEY) || "null"); } catch { return null; }
   }
 
+  // Giriş sayfasının adresi: app.html'den "auth/sign-in.html", auth sayfalarından "sign-in.html".
+  function loginUrl() {
+    return location.pathname.includes("/auth/") ? "sign-in.html" : "auth/sign-in.html";
+  }
+
   // Giriş yapılmamışsa (veya token süresi dolmuşsa) giriş sayfasına gönderir.
-  function requireAuth(loginUrl) {
-    if (!getToken()) window.location.replace(loginUrl);
+  function requireAuth(url = loginUrl()) {
+    if (!getToken()) window.location.replace(url);
+  }
+
+  // Sayfalar arası tek seferlik mesaj (örn. "Şifren güncellendi" → giriş ekranında gösterilir).
+  function setFlash(message, type = "success") {
+    try { sessionStorage.setItem(FLASH_KEY, JSON.stringify({ message, type })); } catch { /* yok say */ }
+  }
+
+  function takeFlash() {
+    try {
+      const value = JSON.parse(sessionStorage.getItem(FLASH_KEY) || "null");
+      sessionStorage.removeItem(FLASH_KEY);
+      return value;
+    } catch { return null; }
+  }
+
+  // Tema/yoğunluk/hareket tercihi yerelde de tutulur; sayfa açılırken sunucu cevabını beklemeden doğru tema boyanır.
+  function saveAppearance(appearance) {
+    try { localStorage.setItem(APPEARANCE_KEY, JSON.stringify(appearance)); } catch { /* yok say */ }
+  }
+
+  function readAppearance() {
+    try { return JSON.parse(localStorage.getItem(APPEARANCE_KEY) || "null"); } catch { return null; }
   }
 
   // Tüm API istekleri buradan geçer: JSON gönderir, varsa token'ı ekler, cevabı tek formatta döner.
@@ -72,14 +108,33 @@ window.PromptForgeSession = (() => {
     const token = getToken();
     if (token) headers["Authorization"] = `Bearer ${token}`;
 
+    let response;
     try {
-      const response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-      const data = await response.json().catch(() => null);
-      return { ok: response.ok, status: response.status, data };
+      response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
     } catch {
       return { ok: false, status: 0, data: { message: "Sunucuya ulaşılamadı. API çalışıyor mu?" } };
     }
+
+    // Token gönderdik ama 401 geldiyse oturum geçersizleşmiş (süresi dolmuş veya hesap silinmiş): girişe dön.
+    if (response.status === 401 && token) {
+      clearSession();
+      setFlash("Oturumun sona erdi. Lütfen tekrar giriş yap.", "error");
+      window.location.replace(loginUrl());
+    }
+    if (response.status === 429 && !path.startsWith("/api/prompts")) {
+      return { ok: false, status: 429, data: { message: "Çok fazla deneme yaptın. Bir dakika bekleyip tekrar dene." } };
+    }
+
+    const data = response.status === 204 ? null : await response.json().catch(() => null);
+    return { ok: response.ok, status: response.status, data };
   }
 
-  return { getToken, getUser, saveSession, clearSession, requireAuth, request };
+  const api = {
+    get: path => request(path),
+    post: (path, body = {}) => request(path, { method: "POST", body }),
+    put: (path, body = {}) => request(path, { method: "PUT", body }),
+    del: path => request(path, { method: "DELETE" })
+  };
+
+  return { getToken, getUser, updateUser, saveSession, clearSession, requireAuth, request, api, setFlash, takeFlash, saveAppearance, readAppearance };
 })();

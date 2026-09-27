@@ -14,9 +14,18 @@
     const items = PF.state.history.filter(item => (model === "all" || item.model === model) && (!search || `${item.original} ${item.optimized}`.toLocaleLowerCase("tr-TR").includes(search)));
     document.querySelector("#kursat-history-count").textContent = `${items.length} kayıt`;
     if (!items.length) { host.innerHTML = emptyState("Henüz geçmiş yok", "Bir prompt optimize ettiğinde sürümleri burada görebileceksin."); return; }
-    host.innerHTML = `<article class="kursat-card kursat-table-card"><table class="kursat-table"><thead><tr><th>Prompt</th><th>Model</th><th>Token</th><th>Tarih</th><th></th></tr></thead><tbody>${items.map(item => `<tr><td><div class="kursat-table-title">${PF.escape((item.original || "").slice(0,72))}${(item.original || "").length > 72 ? "…" : ""}</div></td><td><span class="kursat-badge">${PF.escape((window.PFForge?.modelProfiles[item.model]?.label) || item.model)}</span></td><td>${item.beforeTokens} → ${item.afterTokens}</td><td>${PF.escape(PF.formatDate(item.createdAt))}</td><td><div class="kursat-inline-actions"><button class="kursat-button" type="button" data-kursat-open-history="${item.id}">Aç</button><button class="kursat-button kursat-button--ghost" type="button" data-kursat-delete-history="${item.id}">Sil</button></div></td></tr>`).join("")}</tbody></table></article>`;
+    host.innerHTML = `<article class="kursat-card kursat-table-card"><table class="kursat-table"><thead><tr><th>Prompt</th><th>Model</th><th>Token</th><th>Tarih</th><th></th></tr></thead><tbody>${items.map(item => `<tr><td><div class="kursat-table-title">${PF.escape((item.original || "").slice(0,72))}${(item.original || "").length > 72 ? "…" : ""}</div><small class="kursat-table-engine">${PF.escape(window.PFForge?.engineLabel(item.engine) || "")}</small></td><td><span class="kursat-badge">${PF.escape((window.PFForge?.modelProfiles[item.model]?.label) || item.model)}</span></td><td>${item.beforeTokens} → ${item.afterTokens}</td><td>${PF.escape(PF.formatDate(item.createdAt))}</td><td><div class="kursat-inline-actions"><button class="kursat-button" type="button" data-kursat-open-history="${item.id}">Aç</button><button class="kursat-button kursat-button--ghost" type="button" data-kursat-delete-history="${item.id}">Sil</button></div></td></tr>`).join("")}</tbody></table></article>`;
     host.querySelectorAll("[data-kursat-open-history]").forEach(btn => btn.addEventListener("click", () => { const record = PF.state.history.find(v => v.id === btn.dataset.kursatOpenHistory); if (record) document.dispatchEvent(new CustomEvent("kursat:load-record", { detail:record })); }));
-    host.querySelectorAll("[data-kursat-delete-history]").forEach(btn => btn.addEventListener("click", () => PF.confirm("Kaydı sil", "Bu optimizasyon geçmişten kaldırılacak.", () => { PF.state.history = PF.state.history.filter(v => v.id !== btn.dataset.kursatDeleteHistory); PF.save(); renderAll(); })));
+    host.querySelectorAll("[data-kursat-delete-history]").forEach(btn => btn.addEventListener("click", () => PF.confirm("Kaydı sil", "Bu optimizasyon geçmişten kalıcı olarak kaldırılacak.", async () => {
+      const id = btn.dataset.kursatDeleteHistory;
+      const { ok } = await PF.api.del(`/api/prompts/${id}`);
+      if (!ok) { PF.toast("Kayıt silinemedi", "Tekrar dene."); return; }
+      // Sunucu kaydı silince bağlı favoriyi de siliyor; ekranda da ikisinden birden kaldırıyoruz.
+      PF.state.history = PF.state.history.filter(v => v.id !== id);
+      PF.state.favorites = PF.state.favorites.filter(v => v.id !== id);
+      renderAll();
+      PF.toast("Kayıt silindi");
+    })));
   }
 
   function renderFavorites() {
@@ -24,7 +33,15 @@
     if (!PF.state.favorites.length) { host.innerHTML = emptyState("Henüz favori yok", "Tekrar kullanmak istediğin optimize edilmiş promptları favoriye ekleyebilirsin."); return; }
     host.innerHTML = `<div class="kursat-grid-2">${PF.state.favorites.map(item => `<article class="kursat-card kursat-favorite-card"><div class="kursat-favorite-meta"><span class="kursat-badge">${PF.escape(window.PFForge?.modelProfiles[item.model]?.label || item.model)}</span><span class="kursat-favorite-date">${PF.escape(PF.formatDate(item.createdAt))}</span></div><h3 class="kursat-favorite-title">${PF.escape((item.original || "Prompt").slice(0,80))}${(item.original || "").length > 80 ? "…" : ""}</h3><p class="kursat-favorite-preview">${PF.escape((item.optimized || "").slice(0,150))}${(item.optimized || "").length > 150 ? "…" : ""}</p><div class="kursat-favorite-actions"><button class="kursat-button kursat-button--primary" type="button" data-kursat-open-favorite="${item.id}">Aç</button><button class="kursat-button" type="button" data-kursat-remove-favorite="${item.id}">Kaldır</button></div></article>`).join("")}</div>`;
     host.querySelectorAll("[data-kursat-open-favorite]").forEach(btn => btn.addEventListener("click", () => { const record = PF.state.favorites.find(v => v.id === btn.dataset.kursatOpenFavorite); if (record) document.dispatchEvent(new CustomEvent("kursat:load-record", { detail:record })); }));
-    host.querySelectorAll("[data-kursat-remove-favorite]").forEach(btn => btn.addEventListener("click", () => { PF.state.favorites = PF.state.favorites.filter(v => v.id !== btn.dataset.kursatRemoveFavorite); PF.save(); renderAll(); PF.toast("Favoriden kaldırıldı"); }));
+    host.querySelectorAll("[data-kursat-remove-favorite]").forEach(btn => btn.addEventListener("click", async () => {
+      const id = btn.dataset.kursatRemoveFavorite;
+      btn.disabled = true;
+      const { ok } = await PF.api.del(`/api/favorites/${id}`);
+      if (!ok) { btn.disabled = false; PF.toast("Favoriden kaldırılamadı", "Tekrar dene."); return; }
+      PF.state.favorites = PF.state.favorites.filter(v => v.id !== id);
+      renderAll();
+      PF.toast("Favoriden kaldırıldı");
+    }));
   }
 
   function renderCompare() {
@@ -47,14 +64,21 @@
     const goal = document.querySelector("#kursat-setting-goal");
     model.value = PF.state.model;
     goal.value = PF.state.goal;
-    model.addEventListener("change", () => { PF.state.model = model.value; PF.save(); document.dispatchEvent(new CustomEvent("kursat:defaults-changed", { detail:{ model:PF.state.model, goal:PF.state.goal } })); PF.toast("Bu oturum için varsayılan model güncellendi"); });
-    goal.addEventListener("change", () => { PF.state.goal = goal.value; PF.save(); document.dispatchEvent(new CustomEvent("kursat:defaults-changed", { detail:{ model:PF.state.model, goal:PF.state.goal } })); PF.toast("Bu oturum için varsayılan hedef güncellendi"); });
+    model.addEventListener("change", () => { PF.state.model = model.value; PF.save(); document.dispatchEvent(new CustomEvent("kursat:defaults-changed", { detail:{ model:PF.state.model, goal:PF.state.goal } })); PF.toast("Varsayılan model kaydedildi"); });
+    goal.addEventListener("change", () => { PF.state.goal = goal.value; PF.save(); document.dispatchEvent(new CustomEvent("kursat:defaults-changed", { detail:{ model:PF.state.model, goal:PF.state.goal } })); PF.toast("Varsayılan hedef kaydedildi"); });
   }
 
   function renderAll() { renderHistory(); renderFavorites(); renderCompare(); }
   document.querySelector("#kursat-history-search").addEventListener("input", renderHistory);
   document.querySelector("#kursat-history-model").addEventListener("change", renderHistory);
-  document.querySelector("#kursat-clear-history").addEventListener("click", () => PF.confirm("Geçmişi temizle", "Tüm optimizasyon geçmişi kaldırılacak.", () => { PF.state.history = []; PF.save(); renderAll(); PF.toast("Geçmiş temizlendi"); }));
+  document.querySelector("#kursat-clear-history").addEventListener("click", () => PF.confirm("Geçmişi temizle", "Tüm optimizasyon geçmişi ve favoriler kalıcı olarak kaldırılacak.", async () => {
+    const { ok } = await PF.api.del("/api/prompts");
+    if (!ok) { PF.toast("Geçmiş temizlenemedi", "Tekrar dene."); return; }
+    PF.state.history = [];
+    PF.state.favorites = [];
+    renderAll();
+    PF.toast("Geçmiş temizlendi");
+  }));
   document.addEventListener("kursat:data-changed", renderAll);
   document.addEventListener("kursat:view", event => { if (["history","favorites","compare"].includes(event.detail.name)) renderAll(); });
   setupSettings(); renderAll();
