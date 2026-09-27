@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PromptForge.Api")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+c9f2c173b20a82569997b5ff5e27d7702c265792")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9755dcf9c753ef35566d117f59a08ac80cd4b462")]
 [assembly: System.Reflection.AssemblyProductAttribute("PromptForge.Api")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PromptForge.Api")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
