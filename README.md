@@ -61,8 +61,17 @@ Gerçek e-posta için user secrets'a SMTP ayarlarını ekle (Gmail için bir "uy
 | `wwwroot/` | Arayüz: `app.html` çalışma alanı, `auth/` giriş sayfaları |
 | `docs/` | Tasarımla gelen backend entegrasyon notu |
 
-## Canlıya çıkmadan önce
+## Canlıya alma (ücretsiz: MonsterASP.NET)
 
-- `Jwt:Secret` değerini değiştir (uygulama canlı ortamda örnek anahtarla başlamayı reddeder).
-- Gerçek e-posta (SMTP) ayarlarını gir.
+Canlı sunucu ayarları `appsettings.Production.json` dosyasındadır. Bu dosya `.gitignore`'da olduğu için GitHub'a gitmez
+ama Visual Studio yayınlarken sunucuya kopyalanır. İçinde bağlantı adresi, JWT anahtarı, AI anahtarı ve SMTP ayarları bulunur.
+
+1. monsterasp.net'e kaydol, Control Panel'de bir **website** ve bir **MSSQL database** oluştur.
+2. Veritabanının bağlantı adresini (connection string) kopyala ve `appsettings.Production.json` içindeki
+   `DefaultConnection` değerine yapıştır.
+3. Website ayarlarında **WebDeploy** hesabını aç, `.publishSettings` dosyasını indir.
+4. Visual Studio → projeye sağ tık → **Publish** → **Import Profile** → indirdiğin dosyayı seç → **Publish**.
+5. Tablolar ilk açılışta otomatik oluşur (`Database.Migrate()`); elle SQL çalıştırmaya gerek yoktur.
+6. Control Panel → HTTPS bölümünden ücretsiz Let's Encrypt sertifikasını etkinleştir (ücretsiz planda 90 günde bir elle yenilenir).
+
 - Ödeme sistemi henüz yok; Pro plan "Yakında" olarak görünür.

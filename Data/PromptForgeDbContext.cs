@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using PromptForge.Api.Models;
 
@@ -25,7 +26,7 @@ namespace PromptForge.Api.Data
     /// - Type-safe sorgular (compile-time checking)
     /// - Database-agnostic (SQL Server, PostgreSQL, SQLite'a geçişi kolay)
     /// </summary>
-    public class PromptForgeDbContext : DbContext
+    public class PromptForgeDbContext : DbContext, IDataProtectionKeyContext
     {
         /// <summary>
         /// DbContext'i oluşturur. Veritabanı bağlantısı bilgisi DbContextOptions'dan gelir.
@@ -80,6 +81,12 @@ namespace PromptForge.Api.Data
         /// Faturalandırma ve maliyet analizi için kullanılır.
         /// </summary>
         public DbSet<UsageTracking> UsageTracking { get; set; }
+
+        /// <summary>
+        /// Data Protection şifreleme anahtarları (2FA gizli anahtarlarını çözmek için gerekir).
+        /// Veritabanında durduğu için sunucu yeniden başlasa da anahtarlar kaybolmaz.
+        /// </summary>
+        public DbSet<DataProtectionKey> DataProtectionKeys { get; set; }
 
         /// <summary>
         /// Database şemasını ve ilişkileri konfigüre eder.

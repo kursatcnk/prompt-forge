@@ -1,6 +1,8 @@
 using System.Text;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -98,8 +100,11 @@ builder.Services.AddDbContext<PromptForgeDbContext>(options =>
         sql.EnableRetryOnFailure(maxRetryCount: 5)));
 
 /// Data Protection: 2FA gizli anahtarlarını veritabanına şifreli yazmak için kullanılır.
-/// Şifreleme anahtarları proje klasörü dışında, Windows kullanıcı profilinde saklanır.
-builder.Services.AddDataProtection();
+/// Şifreleme anahtarları da veritabanında saklanır: paylaşımlı hosting'te sunucu yeniden başladığında
+/// anahtarlar kaybolursa kullanıcıların 2FA'sı çalışmaz hâle gelirdi.
+builder.Services.AddDataProtection()
+    .SetApplicationName("PromptForge")
+    .PersistKeysToDbContext<PromptForgeDbContext>();
 
 // ===== 5. SERVİS KATMANI =====
 
@@ -133,9 +138,25 @@ builder.Services.AddSingleton<PromptAnalysisService>();
 
 var app = builder.Build();
 
+/// Uygulama açılırken bekleyen migration'ları veritabanına uygular.
+/// Böylece canlı sunucuda tablolar ilk açılışta kendiliğinden oluşur; elle SQL çalıştırmak gerekmez.
+using (var scope = app.Services.CreateScope())
+{
+    scope.ServiceProvider.GetRequiredService<PromptForgeDbContext>().Database.Migrate();
+}
+
 // ===== 8. MIDDLEWARE SIRASI =====
 
 /// Gelen her istek yukarıdan aşağıya bu adımlardan geçer.
+
+/// Site bir tünel veya proxy arkasında yayınlandığında (Dev Tunnels, Cloudflare vb.) istekler uygulamaya
+/// 127.0.0.1'den geliyormuş gibi görünür. Proxy'nin eklediği X-Forwarded-* başlıklarından gerçek kullanıcı IP'si,
+/// https ve site adresi okunur: deneme sınırı herkese ayrı işler, e-postadaki linkler doğru adrese gider.
+/// Varsayılan olarak yalnızca aynı bilgisayardan (loopback) gelen başlıklara güvenilir.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost
+});
 
 if (app.Environment.IsDevelopment())
 {

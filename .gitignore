@@ -53,3 +53,6 @@ logs/
 # Rider
 .idea/
 *.sln.iml
+
+# Canlı sunucu ayarları (şifre ve API anahtarları içerir) — asla GitHub'a gönderilmez
+appsettings.Production.json

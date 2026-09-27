@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PromptForge.Api.Data;
 
@@ -11,9 +12,11 @@ using PromptForge.Api.Data;
 namespace PromptForge.Api.Data.Migrations
 {
     [DbContext(typeof(PromptForgeDbContext))]
-    partial class PromptForgeDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260927184920_DataProtectionKeys")]
+    partial class DataProtectionKeys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
