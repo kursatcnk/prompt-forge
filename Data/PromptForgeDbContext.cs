@@ -95,6 +95,54 @@ namespace PromptForge.Api.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            // ===== Users: alan kuralları =====
+            // Email zorunlu, en fazla 255 karakter ve her email sadece bir kez kayıtlı olabilir.
+            modelBuilder.Entity<User>(entity =>
+            {
+                entity.Property(u => u.Email).IsRequired().HasMaxLength(255);
+                entity.HasIndex(u => u.Email).IsUnique();
+                entity.Property(u => u.PasswordHash).IsRequired();
+                entity.Property(u => u.DisplayName).HasMaxLength(255);
+            });
+
+            // ===== PromptOptimizations: kısa metin alanları =====
+            // Model adı, senaryo gibi alanlar kısa değerler tutar; nvarchar(max) yerine 50 karakter yeterli.
+            modelBuilder.Entity<PromptOptimization>(entity =>
+            {
+                entity.Property(p => p.OriginalContent).IsRequired();
+                entity.Property(p => p.TargetModel).HasMaxLength(50);
+                entity.Property(p => p.UseCase).HasMaxLength(50);
+                entity.Property(p => p.OutputFormat).HasMaxLength(50);
+                entity.Property(p => p.OptimizationTarget).HasMaxLength(50);
+                entity.HasIndex(p => p.CreatedAt);
+            });
+
+            // ===== ApiKeys: her sağlayıcının tek bir anahtarı olur =====
+            modelBuilder.Entity<ApiKey>(entity =>
+            {
+                entity.Property(k => k.Provider).IsRequired().HasMaxLength(50);
+                entity.HasIndex(k => k.Provider).IsUnique();
+                entity.Property(k => k.EncryptedKey).IsRequired();
+            });
+
+            // ===== UsageTracking: para alanı hassasiyeti =====
+            // decimal(10,4) → örn. 123456.7890 dolar. Belirtmezsek EF uyarı verir ve küsurat kaybolabilir.
+            modelBuilder.Entity<UsageTracking>(entity =>
+            {
+                entity.Property(t => t.Provider).HasMaxLength(50);
+                entity.Property(t => t.Cost).HasPrecision(10, 4);
+            });
+
+            // ===== UserSettings: kısa metin alanları =====
+            modelBuilder.Entity<UserSettings>(entity =>
+            {
+                entity.Property(s => s.DefaultModel).HasMaxLength(50);
+                entity.Property(s => s.DefaultOptimizationTarget).HasMaxLength(50);
+                entity.Property(s => s.Theme).HasMaxLength(50);
+                entity.Property(s => s.Density).HasMaxLength(50);
+                entity.Property(s => s.Language).HasMaxLength(10);
+            });
+
             // ===== PromptOptimization → User (N:1) =====
             // Bir user birçok prompt optimization'a sahip.
             // User silinirse tüm optimizasyonları silin (cascade).
@@ -112,6 +160,21 @@ namespace PromptForge.Api.Data
                 .WithMany(u => u.FavoritePrompts)
                 .HasForeignKey(f => f.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // ===== FavoritePrompt → PromptOptimization (N:1) =====
+            // SQL Server aynı satıra iki farklı "cascade delete" yolu olmasına izin vermez
+            // (User → Favori ve User → Prompt → Favori). Bu yüzden bu yolda otomatik silme kapalı;
+            // bir prompt silinmeden önce favorileri kodda silinmelidir.
+            modelBuilder.Entity<FavoritePrompt>()
+                .HasOne(f => f.PromptOptimization)
+                .WithMany()
+                .HasForeignKey(f => f.PromptOptimizationId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // Aynı kullanıcı aynı promptu iki kez favoriye ekleyemez.
+            modelBuilder.Entity<FavoritePrompt>()
+                .HasIndex(f => new { f.UserId, f.PromptOptimizationId })
+                .IsUnique();
 
             // ===== UserSettings → User (1:1) =====
             // Bir user'ın tam olarak bir Settings'i var.

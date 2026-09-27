@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(New-Item -ItemType Directory -Path \"E:\\\\Github\\\\prompt-forge\\\\Models\" -Force)",
-      "PowerShell(New-Item -ItemType Directory -Path \"E:\\\\Github\\\\prompt-forge\\\\Data\" -Force)"
-    ]
-  }
-}

@@ -61,7 +61,8 @@ namespace PromptForge.Api.Services
                 Id = Guid.NewGuid(),
                 Email = email,
                 PasswordHash = passwordHash,
-                DisplayName = displayName ?? email.Split('@')[0],
+                // Görünen ad girilmediyse email'in @ öncesini kullan (ahmet@x.com → ahmet).
+                DisplayName = string.IsNullOrWhiteSpace(displayName) ? email.Split('@')[0] : displayName,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsActive = true

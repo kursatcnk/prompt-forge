@@ -14,13 +14,13 @@ namespace PromptForge.Api.Models
         /// <summary>
         /// Kullanıcının e-posta adresi. Giriş ve iletişim için kullanılır. Unique constraint var.
         /// </summary>
-        public string? Email { get; set; }
+        public string Email { get; set; } = string.Empty;
 
         /// <summary>
         /// Şifreli parola hash'i. Asla düz metin olarak saklanmaz.
         /// Bcrypt veya PBKDF2 gibi güvenli algoritmalarla şifrelenir.
         /// </summary>
-        public string? PasswordHash { get; set; }
+        public string PasswordHash { get; set; } = string.Empty;
 
         /// <summary>
         /// Kullanıcının görüntü adı. Profil ve arayüzde kullanıcıyı temsil eder.

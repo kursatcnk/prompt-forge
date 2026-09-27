@@ -44,7 +44,8 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 /// Daha sonra controllers'da şu şekilde kullanılır:
 /// public UserController(PromptForgeDbContext context) => _context = context;
 builder.Services.AddDbContext<PromptForgeDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlServerOptions =>
+        sqlServerOptions.EnableRetryOnFailure(maxRetryCount: 5)));
 
 /// ===== SERVIS KATMANI =====
 
