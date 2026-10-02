@@ -4,6 +4,8 @@ Yapay zekâya yazdığın promptu, kullanacağın modelin en iyi anladığı hâ
 
 ASP.NET Core 8 Web API + SQL Server arka uç, sade HTML/CSS/JavaScript arayüz. Site ve API aynı adreste çalışıyor.
 
+![PromptForge çalışma alanı](docs/screenshots/workspace.webp)
+
 ## Özellikler
 
 - **Modele özel optimizasyon:** GPT, Claude, Gemini, DeepSeek veya evrensel. İçerik aynı kalıyor, biçim değişiyor: GPT için Markdown başlıkları, Claude için XML etiketleri ve önce bağlam, Gemini için etiketli satırlar ve görev en sonda, DeepSeek için sade paragraflar.
@@ -70,7 +72,7 @@ Canlı ayarlar `appsettings.Production.json` dosyasında durur (bağlantı adres
 | | |
 |---|---|
 | Arka uç | ASP.NET Core 8 Web API, Entity Framework Core 8, SQL Server |
-| Kimlik | JWT, BCrypt, TOTP (Otp.NET), QR (QRCoder), Data Protection |
+| Kimlik | JWT (httpOnly çerezde), antiforgery, BCrypt, TOTP (Otp.NET), QR (QRCoder), Data Protection |
 | AI | Anthropic C# SDK, OpenAI/DeepSeek chat completions, Gemini REST |
 | Arayüz | Framework'süz HTML, CSS, JavaScript |
 
@@ -85,6 +87,7 @@ wwwroot/         index.html tanıtım sayfası, app.html uygulama, auth/ giriş 
 
 Bazı detaylar:
 
+- JWT tarayıcıda `HttpOnly`, `SameSite=Strict` bir çerezde durur (https'te `Secure`), JavaScript token'ı göremez. Çerezle gelen değiştirici isteklerde `X-CSRF-TOKEN` başlığı doğrulanır; çıkışta çerezi sunucu siler. Swagger ve dış istemciler `Authorization: Bearer` başlığıyla çalışmaya devam eder.
 - Şifreler BCrypt, tek kullanımlık kodlar SHA-256 ile saklanır; 2FA secret'ları şifreli, anahtarları veritabanında.
 - Giriş/kayıt/şifre işlemleri IP başına, AI istekleri kullanıcı başına dakikalık sınırlı.
 - Kota, SQL Server `sp_getapplock` ile kullanıcı başına kilitlenerek sayılır; son hakta paralel istekler yarışamaz.
@@ -95,5 +98,8 @@ Bazı detaylar:
 
 - Ödeme sistemi (Pro plan şu an "Yakında")
 - Yönetici paneli
-- Token'ı localStorage yerine httpOnly cookie'de tutmak
 - Gizlilik ve kullanım şartları sayfaları
+
+## Lisans
+
+[MIT](LICENSE)

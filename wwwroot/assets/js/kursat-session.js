@@ -1,14 +1,15 @@
-// Oturum ve API katmanı. Sayfalar fetch'i kendileri çağırmıyor, token ve istekler hep buradan geçiyor.
+// Oturum ve API katmanı. Sayfalar fetch'i kendileri çağırmıyor, istekler hep buradan geçiyor.
+// Token httpOnly çerezde, JS göremiyor. Burada sadece kullanıcı bilgisi ve oturumun bitiş zamanı tutuluyor.
 window.PromptForgeSession = (() => {
   "use strict";
 
-  const TOKEN_KEY = "promptforge.token";
   const USER_KEY = "promptforge.user";
+  const EXPIRES_KEY = "promptforge.expiresAt";
+  const LEGACY_TOKEN_KEY = "promptforge.token";
   const APPEARANCE_KEY = "promptforge.appearance";
   const FLASH_KEY = "promptforge.flash";
 
   // Beni hatırla → localStorage, değilse sessionStorage (sekme kapanınca gidiyor).
-  // TODO: token JS'ten okunabilir yerde, XSS'e açık. İleride httpOnly cookie'ye taşımak lazım.
   function stores() {
     const list = [];
     try { list.push(window.localStorage); } catch { /* depolama kapalı olabilir */ }
@@ -23,44 +24,42 @@ window.PromptForgeSession = (() => {
     return null;
   }
 
+  // Eski sürüm token'ı depolamada tutuyordu; kalmışsa sil.
+  for (const store of stores()) {
+    try { store.removeItem(LEGACY_TOKEN_KEY); } catch { /* yok say */ }
+  }
+
+  let csrfToken = null;
+
   function clearSession() {
+    csrfToken = null;
     for (const store of stores()) {
-      try { store.removeItem(TOKEN_KEY); store.removeItem(USER_KEY); } catch { /* yok say */ }
+      try { store.removeItem(USER_KEY); store.removeItem(EXPIRES_KEY); } catch { /* yok say */ }
     }
   }
 
-  function saveSession(token, user, remember) {
+  function saveSession(user, expiresAt, remember) {
     clearSession();
     const store = remember ? stores()[0] : stores()[1];
     try {
-      store?.setItem(TOKEN_KEY, token);
       store?.setItem(USER_KEY, JSON.stringify(user ?? {}));
+      if (expiresAt) store?.setItem(EXPIRES_KEY, expiresAt);
     } catch { /* depolama doluysa oturum sadece bu sayfada yaşar */ }
   }
 
-  // Ad değişince token'a dokunmadan sadece kullanıcı bilgisini güncelle.
+  // Ad değişince sadece kullanıcı bilgisini güncelle.
   function updateUser(user) {
     for (const store of stores()) {
-      try { if (store.getItem(TOKEN_KEY)) store.setItem(USER_KEY, JSON.stringify(user ?? {})); } catch { /* yok say */ }
+      try { if (store.getItem(USER_KEY)) store.setItem(USER_KEY, JSON.stringify(user ?? {})); } catch { /* yok say */ }
     }
   }
 
-  // JWT'nin orta parçası base64 JSON; içinden exp'i okuyorum, süresi dolmuşsa hiç istek atmadan çıkış.
-  function isExpired(token) {
-    try {
-      const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
-      const json = JSON.parse(atob(payload.padEnd(payload.length + (4 - payload.length % 4) % 4, "=")));
-      return typeof json.exp === "number" && json.exp * 1000 <= Date.now();
-    } catch {
-      return true;
-    }
-  }
-
-  function getToken() {
-    const token = read(TOKEN_KEY);
-    if (!token) return null;
-    if (isExpired(token)) { clearSession(); return null; }
-    return token;
+  // Süresi dolmuşsa hiç istek atmadan çıkış. Çerez yine de geçersizse ilk istekte 401 gelir.
+  function isSignedIn() {
+    if (!read(USER_KEY)) return false;
+    const expiresAt = Date.parse(read(EXPIRES_KEY) || "");
+    if (Number.isFinite(expiresAt) && expiresAt <= Date.now()) { clearSession(); return false; }
+    return true;
   }
 
   function getUser() {
@@ -73,7 +72,7 @@ window.PromptForgeSession = (() => {
   }
 
   function requireAuth(url = loginUrl()) {
-    if (!getToken()) window.location.replace(url);
+    if (!isSignedIn()) window.location.replace(url);
   }
 
   // Sayfa değişirken bırakılan tek seferlik mesaj (örn. şifre sıfırlandıktan sonra giriş ekranında).
@@ -98,22 +97,43 @@ window.PromptForgeSession = (() => {
     try { return JSON.parse(localStorage.getItem(APPEARANCE_KEY) || "null"); } catch { return null; }
   }
 
-  // Her istek { ok, status, data } dönüyor, çağıran taraf fetch detaylarıyla uğraşmıyor.
-  async function request(path, { method = "GET", body } = {}) {
+  // CSRF token'ı oturuma bağlı; giriş/çıkışta sıfırlanıyor, ilk değiştirici istekte yeniden alınıyor.
+  async function loadCsrfToken() {
+    if (csrfToken) return csrfToken;
+    try {
+      const response = await fetch("/api/csrf", { credentials: "same-origin", headers: { "Accept": "application/json" } });
+      csrfToken = response.ok ? (await response.json())?.token ?? null : null;
+    } catch { csrfToken = null; }
+    return csrfToken;
+  }
+
+  async function send(path, method, body) {
     const headers = { "Accept": "application/json" };
     if (body !== undefined) headers["Content-Type"] = "application/json";
-    const token = getToken();
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (method !== "GET") {
+      const token = await loadCsrfToken();
+      if (token) headers["X-CSRF-TOKEN"] = token;
+    }
+    return fetch(path, { method, headers, credentials: "same-origin", body: body === undefined ? undefined : JSON.stringify(body) });
+  }
 
+  // Her istek { ok, status, data } dönüyor, çağıran taraf fetch detaylarıyla uğraşmıyor.
+  async function request(path, { method = "GET", body } = {}) {
+    const signedIn = isSignedIn();
     let response;
     try {
-      response = await fetch(path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
+      response = await send(path, method, body);
+      // Token başka sekmede girişle değişmiş olabilir; bir kez yenileyip tekrar dene.
+      if (response.status === 400 && method !== "GET") {
+        const peek = await response.clone().json().catch(() => null);
+        if (peek?.code === "csrf_invalid") { csrfToken = null; response = await send(path, method, body); }
+      }
     } catch {
       return { ok: false, status: 0, data: { message: "Sunucuya ulaşılamadı. API çalışıyor mu?" } };
     }
 
-    // Token vardı ama 401 geldi: süresi dolmuş ya da hesap silinmiş. Girişe dön.
-    if (response.status === 401 && token) {
+    // Oturum vardı ama 401 geldi: süresi dolmuş ya da hesap silinmiş. Girişe dön.
+    if (response.status === 401 && signedIn) {
       clearSession();
       setFlash("Oturumun sona erdi. Lütfen tekrar giriş yap.", "error");
       window.location.replace(loginUrl());
@@ -126,6 +146,12 @@ window.PromptForgeSession = (() => {
     return { ok: response.ok, status: response.status, data };
   }
 
+  // Çerezi sunucu siliyor (httpOnly, JS dokunamıyor). İstek başarısız olsa da yerel oturum temizleniyor.
+  async function signOut() {
+    try { await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }); } catch { /* yok say */ }
+    clearSession();
+  }
+
   const api = {
     get: path => request(path),
     post: (path, body = {}) => request(path, { method: "POST", body }),
@@ -133,5 +159,5 @@ window.PromptForgeSession = (() => {
     del: path => request(path, { method: "DELETE" })
   };
 
-  return { getToken, getUser, updateUser, saveSession, clearSession, requireAuth, request, api, setFlash, takeFlash, saveAppearance, readAppearance };
+  return { isSignedIn, getUser, updateUser, saveSession, clearSession, signOut, requireAuth, request, api, setFlash, takeFlash, saveAppearance, readAppearance };
 })();

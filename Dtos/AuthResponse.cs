@@ -1,11 +1,11 @@
 namespace PromptForge.Api.Dtos
 {
-    // Normal giriş: { success, token, user }
+    // Normal giriş: { success, user, expiresAt }. Token gövdede değil, httpOnly çerezde (AuthCookie).
     // 2FA açıksa: { success, requiresTwoFactor: true, twoFactorTicket } ve arayüz kod ekranına geçiyor.
     public class AuthResponse
     {
         public bool Success { get; set; }
-        public string? Token { get; set; }
+        public DateTimeOffset? ExpiresAt { get; set; }
         public string? Message { get; set; }
         public UserInfo? User { get; set; }
         public bool RequiresTwoFactor { get; set; }

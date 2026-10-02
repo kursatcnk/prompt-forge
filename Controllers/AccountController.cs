@@ -89,7 +89,10 @@ namespace PromptForge.Api.Controllers
         public async Task<ActionResult<MessageResponse>> DeleteAccount([FromBody] PasswordConfirmRequest request)
         {
             var (success, error) = await _account.DeleteAccountAsync(User.GetUserId(), request.Password);
-            return success ? Ok(MessageResponse.Ok("Hesabın ve tüm verilerin silindi.")) : BadRequest(MessageResponse.Fail(error!));
+            if (!success) return BadRequest(MessageResponse.Fail(error!));
+
+            AuthCookie.Delete(Response);
+            return Ok(MessageResponse.Ok("Hesabın ve tüm verilerin silindi."));
         }
     }
 }

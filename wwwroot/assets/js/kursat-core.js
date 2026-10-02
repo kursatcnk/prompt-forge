@@ -364,8 +364,8 @@
       kursatCloseConfirm();
       if (typeof action === "function") setTimeout(action, kursatState.motion === "off" ? 0 : 150);
     });
-    document.querySelector("#kursat-signout")?.addEventListener("click", () => {
-      window.PromptForgeSession?.clearSession();
+    document.querySelector("#kursat-signout")?.addEventListener("click", async () => {
+      await window.PromptForgeSession?.signOut();
       window.location.href = "auth/log-out.html";
     });
 

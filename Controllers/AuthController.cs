@@ -12,11 +12,13 @@ namespace PromptForge.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IUserService _userService;
+        private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
 
-        public AuthController(IUserService userService, ILogger<AuthController> logger)
+        public AuthController(IUserService userService, IConfiguration configuration, ILogger<AuthController> logger)
         {
             _userService = userService;
+            _configuration = configuration;
             _logger = logger;
         }
 
@@ -28,7 +30,7 @@ namespace PromptForge.Api.Controllers
                 return BadRequest(new AuthResponse { Success = false, Message = result.Error });
 
             _logger.LogInformation("Yeni kullanıcı kaydı: {Email}", result.User!.Email);
-            return Ok(ToResponse(result, "Kayıt başarılı. Otomatik giriş yapıldı."));
+            return Ok(SignIn(result, persistent: true, "Kayıt başarılı. Otomatik giriş yapıldı."));
         }
 
         [HttpPost("login")]
@@ -39,7 +41,18 @@ namespace PromptForge.Api.Controllers
                 return Unauthorized(new AuthResponse { Success = false, Message = result.Error });
 
             _logger.LogInformation("Kullanıcı girişi: {Email}", result.User!.Email);
-            return Ok(ToResponse(result, result.RequiresTwoFactor ? "Doğrulama kodu gerekli." : "Giriş başarılı"));
+
+            // 2FA açıksa çerez henüz verilmiyor, sadece kod ekranı için bilet dönüyor.
+            if (result.RequiresTwoFactor)
+                return Ok(new AuthResponse
+                {
+                    Success = true,
+                    Message = "Doğrulama kodu gerekli.",
+                    RequiresTwoFactor = true,
+                    TwoFactorTicket = result.TwoFactorTicket
+                });
+
+            return Ok(SignIn(result, request.RememberMe ?? true, "Giriş başarılı"));
         }
 
         [HttpPost("login/two-factor")]
@@ -49,7 +62,15 @@ namespace PromptForge.Api.Controllers
             if (!result.Success)
                 return Unauthorized(new AuthResponse { Success = false, Message = result.Error });
 
-            return Ok(ToResponse(result, "Giriş başarılı"));
+            return Ok(SignIn(result, request.RememberMe ?? true, "Giriş başarılı"));
+        }
+
+        // Token süresi dolmuş olsa da çerez silinebilsin diye [Authorize] yok; CSRF kontrolünden de muaf (Program.cs).
+        [HttpPost("logout")]
+        public IActionResult Logout()
+        {
+            AuthCookie.Delete(Response);
+            return NoContent();
         }
 
         [HttpPost("forgot-password")]
@@ -69,15 +90,20 @@ namespace PromptForge.Api.Controllers
                 : BadRequest(MessageResponse.Fail(error!));
         }
 
-        private static AuthResponse ToResponse(AuthResult result, string message) => new()
+        // Token'ı gövdede göndermiyorum; tarayıcı sadece kullanıcı bilgisini ve bitiş zamanını görüyor.
+        private AuthResponse SignIn(AuthResult result, bool persistent, string message)
         {
-            Success = true,
-            Token = result.Token,
-            Message = message,
-            // 2FA adımında henüz tam giriş yok, kullanıcı bilgisini göndermiyorum.
-            User = result.RequiresTwoFactor ? null : UserService.ToUserInfo(result.User!),
-            RequiresTwoFactor = result.RequiresTwoFactor,
-            TwoFactorTicket = result.TwoFactorTicket
-        };
+            var minutes = int.TryParse(_configuration["Jwt:ExpiryMinutes"], out var m) && m > 0 ? m : 60;
+            var expiresAt = DateTimeOffset.UtcNow.AddMinutes(minutes);
+            AuthCookie.Append(Response, result.Token!, expiresAt, persistent);
+
+            return new AuthResponse
+            {
+                Success = true,
+                Message = message,
+                User = UserService.ToUserInfo(result.User!),
+                ExpiresAt = expiresAt
+            };
+        }
     }
 }

@@ -11,6 +11,8 @@ namespace PromptForge.Api.Dtos
     {
         public string? Email { get; set; }
         public string? Password { get; set; }
+        // Beni hatırla: kalıcı çerez mi, tarayıcı kapanınca giden oturum çerezi mi.
+        public bool? RememberMe { get; set; }
     }
 
     // Ticket: şifre doğru girilince verilen 5 dakikalık bilet. Code: authenticator'daki 6 hane.
@@ -18,6 +20,7 @@ namespace PromptForge.Api.Dtos
     {
         public string? Ticket { get; set; }
         public string? Code { get; set; }
+        public bool? RememberMe { get; set; }
     }
 
     public class ForgotPasswordRequest

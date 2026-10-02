@@ -6,7 +6,7 @@
   <meta name="description" content="PromptForge; GPT, Claude, Gemini ve DeepSeek için promptlarını seçtiğin modelin en iyi anladığı biçime getirir ve daha iyi prompt yazmayı öğretir.">
   <title>PromptForge · Yapay zekâya ne istediğini tam olarak anlat</title>
   <link rel="icon" href="assets/img/kursat-promptforge-mark.svg" type="image/svg+xml">
-  <script src="assets/js/kursat-session.js?v=6"></script>
+  <script src="assets/js/kursat-session.js?v=7"></script>
   <script>
     // uygulamada seçilen tema burada da geçerli, ilk boyamadan önce
     (()=>{const a=PromptForgeSession.readAppearance()||{};const pref=a.theme||"system";const dark=pref==="dark"||(pref==="system"&&matchMedia?.("(prefers-color-scheme: dark)")?.matches);document.documentElement.dataset.kursatTheme=dark?"dark":"light";})();
@@ -244,7 +244,7 @@ Konu satırı, 3 önizleme metni ve e-posta gövdesi.</pre>
   (() => {
     "use strict";
     // girişliyse kayıt butonları yerine çalışma alanı linki
-    const member = !!PromptForgeSession.getToken();
+    const member = PromptForgeSession.isSignedIn();
     document.querySelectorAll("[data-lp-guest]").forEach(el => el.classList.toggle("lp-hidden", member));
     document.querySelectorAll("[data-lp-member]").forEach(el => el.classList.toggle("lp-hidden", !member));
 

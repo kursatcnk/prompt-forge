@@ -20,10 +20,10 @@
   if (flash?.message) showMessage(flash.message, flash.type);
 
   // Zaten girişliyse giriş/kayıt sayfasında durmasın.
-  if (session?.getToken() && document.querySelector("#kursat-login-form, #kursat-register-form")) window.location.replace(APP_URL);
+  if (session?.isSignedIn() && document.querySelector("#kursat-login-form, #kursat-register-form")) window.location.replace(APP_URL);
 
   // Doğrulama ve şifre onayı sayfaları token istiyor.
-  if (document.querySelector("#kursat-verify-form, #kursat-confirm-form") && !session?.getToken()) {
+  if (document.querySelector("#kursat-verify-form, #kursat-confirm-form") && !session?.isSignedIn()) {
     session?.setFlash("Devam etmek için giriş yap.", "error");
     window.location.replace("sign-in.html");
   }
@@ -50,7 +50,7 @@
     const remember = document.querySelector("#kursat-login-remember")?.checked ?? true;
 
     setLoading(form, "Kontrol ediliyor...");
-    const { ok, data } = await session.api.post("/api/auth/login", { email, password });
+    const { ok, data } = await session.api.post("/api/auth/login", { email, password, rememberMe: remember });
     if (!ok) { showMessage(data?.message || "Giriş yapılamadı.", "error"); resetLoading(form); return; }
 
     // 2FA açıksa token yerine bilet geliyor, kod ekranına.
@@ -59,7 +59,7 @@
       navigate(form, "two-step.html", "Şifre doğru. Doğrulama koduna geçiliyor.");
       return;
     }
-    session.saveSession(data.token, data.user, remember);
+    session.saveSession(data.user, data.expiresAt, remember);
     // Mail doğrulanmamışsa önce doğrulama ekranı, istenirse "Şimdilik atla".
     if (data.user && !data.user.emailConfirmed) {
       navigate(form, "email-verification.html", "Giriş başarılı. Önce e-posta adresini doğrulayalım.");
@@ -81,7 +81,7 @@
       const code = otpCode();
       if (code.length !== 6) { showMessage("Lütfen 6 haneli doğrulama kodunu gir.", "error"); return; }
       setLoading(twoFactorForm, "Doğrulanıyor...");
-      const { ok, data } = await session.api.post("/api/auth/login/two-factor", { ticket: pending.ticket, code });
+      const { ok, data } = await session.api.post("/api/auth/login/two-factor", { ticket: pending.ticket, code, rememberMe: pending.remember });
       if (!ok) {
         showMessage(data?.message || "Kod doğrulanamadı.", "error");
         resetLoading(twoFactorForm);
@@ -90,7 +90,7 @@
         return;
       }
       sessionStorage.removeItem(TWO_FACTOR_KEY);
-      session.saveSession(data.token, data.user, pending.remember);
+      session.saveSession(data.user, data.expiresAt, pending.remember);
       navigate(twoFactorForm, APP_URL, "Doğrulama tamamlandı.");
     });
   }
@@ -108,7 +108,7 @@
     setLoading(form, "Hesap oluşturuluyor...");
     const { ok, data } = await session.api.post("/api/auth/register", { email, password, displayName });
     if (!ok) { showMessage(data?.message || "Hesap oluşturulamadı.", "error"); resetLoading(form); return; }
-    session.saveSession(data.token, data.user, true);
+    session.saveSession(data.user, data.expiresAt, true);
     navigate(form, "email-verification.html", "Hesabın oluşturuldu. E-postana doğrulama kodu gönderdik.");
   });
 
@@ -156,7 +156,7 @@
     setLoading(recoverForm, "Güncelleniyor...");
     const { ok, data } = await session.api.post("/api/auth/reset-password", { email: params.get("email"), token: params.get("token"), newPassword: p1 });
     if (!ok) { showMessage(data?.message || "Şifre güncellenemedi.", "error"); resetLoading(recoverForm); return; }
-    session.clearSession();
+    await session.signOut();
     session.setFlash(data.message);
     navigate(recoverForm, "sign-in.html", data.message);
   });

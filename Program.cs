@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
@@ -27,7 +28,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    // Swagger'da Authorize butonu çıksın, token'ı bir kere yapıştırınca tüm isteklerde gitsin.
+    // Swagger'da Authorize butonu çıksın. Arayüz çerezle çalışıyor; bu tanım Bearer başlığı kullanan istemciler için.
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -35,7 +36,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Login'den dönen token (başına Bearer yazmadan)."
+        Description = "JWT (başına Bearer yazmadan). Tarayıcıdan girişte token pf.auth çerezinde durur."
     });
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
@@ -60,7 +61,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
+        // Arayüz token'ı httpOnly çerezde taşıyor; Authorization başlığı gelmişse (Swagger, dış istemci) o öncelikli.
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                if (string.IsNullOrEmpty(context.Token) && !context.Request.Headers.ContainsKey("Authorization"))
+                    context.Token = context.Request.Cookies[AuthCookie.Name];
+                return Task.CompletedTask;
+            }
+        };
     });
+
+// Çerezle giriş yapınca tarayıcı çerezi her isteğe kendisi ekliyor; başka bir siteden tetiklenen
+// isteklere karşı değiştiren her istekte X-CSRF-TOKEN başlığı aranıyor (aşağıdaki middleware).
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.Name = "pf.csrf";
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -172,11 +193,40 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseAuthentication();
+
+// Sadece çerezle gelen değiştirici isteklerde CSRF kontrolü. Bearer başlığıyla gelen istekleri
+// başka site tetikleyemez. Çıkış muaf: token'ın süresi dolmuş olsa da çerez silinebilmeli.
+app.Use(async (context, next) =>
+{
+    var request = context.Request;
+    var unsafeMethod = !(HttpMethods.IsGet(request.Method) || HttpMethods.IsHead(request.Method) || HttpMethods.IsOptions(request.Method));
+    if (unsafeMethod
+        && request.Path.StartsWithSegments("/api")
+        && !request.Path.StartsWithSegments("/api/auth/logout")
+        && request.Cookies.ContainsKey(AuthCookie.Name)
+        && !request.Headers.ContainsKey("Authorization")
+        && !await context.RequestServices.GetRequiredService<IAntiforgery>().IsRequestValidAsync(context))
+    {
+        context.Response.StatusCode = StatusCodes.Status400BadRequest;
+        await context.Response.WriteAsJsonAsync(new { success = false, code = "csrf_invalid", message = "Oturum doğrulanamadı. Sayfayı yenileyip tekrar dene." });
+        return;
+    }
+    await next();
+});
+
 app.UseAuthorization();
 // "ai" limiti kullanıcı id'sine göre çalışıyor, o yüzden authentication'dan sonra.
 app.UseRateLimiter();
 
 app.MapHealthChecks("/health");
+
+// CSRF token'ı oturuma bağlı; arayüz girişten sonra ve ilk değiştirici istekten önce buradan alıyor.
+// AuthController'ın rate limit'ine takılmasın diye ayrı uç.
+app.MapGet("/api/csrf", (HttpContext context, IAntiforgery antiforgery) =>
+{
+    var tokens = antiforgery.GetAndStoreTokens(context);
+    return Results.Ok(new { token = tokens.RequestToken });
+});
 app.MapControllers();
 
 app.Run();
